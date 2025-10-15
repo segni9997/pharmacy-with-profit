@@ -1,0 +1,305 @@
+.invoice-page {
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 10px;
+  font-family: "Times New Roman", Times, serif;
+}
+
+.invoice-container {
+  max-width: 600px;
+  margin: 0 auto;
+  background-color: white;
+  padding: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.invoice-header {
+  text-align: center;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 5px;
+}
+
+.header-fields {
+  justify-content: center;
+  /* gap: 5px; */
+}
+
+.field-group {
+  padding: 0 5px;
+}
+
+.field-group label {
+  font-size: 9px;
+}
+
+.field-group input {
+  width: 60px;
+  font-size: 10px;
+  padding: 1px 2px;
+}
+
+.pharmacy-name-amharic {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 3px;
+  letter-spacing: 1px;
+}
+
+.pharmacy-name-english {
+  font-size: 14px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-bottom: 5px;
+}
+
+.phone-number {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+/* .parties-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 15px;
+  margin: auto;
+} */
+
+.party {
+  font-size: 10px;
+}
+
+.party h3 {
+  font-size: 12px;
+  margin-bottom: 5px;
+  /* text-decoration: underline; */
+}
+
+.party-field {
+  margin-bottom: 2px;
+  display: flex;
+  flex-direction: row;
+  gap: 3px;
+}
+
+.party-field label {
+  font-weight: bold;
+  max-width:fit-content;
+  font-size: 10px;
+}
+
+.party-field input {
+  font-weight: bold;
+  max-width:fit-content;
+  font-size: 10px;
+  text-decoration: underline;
+}
+
+.party-field span {
+  font-size: 10px;
+}
+
+.invoice-title {
+  text-align: center;
+  font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  text-decoration: underline;
+}
+
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+  font-size: 10px;
+}
+
+.invoice-table th,
+.invoice-table td {
+  border: 1px solid #333;
+  padding: 1px;
+  text-align: center;
+  height: 20px;
+}
+
+.invoice-table th {
+  background-color: #e0e0e0;
+  font-weight: bold;
+  font-size: 10px;
+}
+
+.invoice-table input {
+  width: 100%;
+  border: none;
+  text-align: center;
+  font-family: inherit;
+  padding: 2px;
+  font-size: 10px;
+}
+
+.invoice-table input:focus {
+  outline: 1px solid #4a90e2;
+}
+.party-field input:focus {
+  font-weight: bold;
+  max-width:fit-content;
+  font-size: 10px;
+}
+.description-input {
+  text-align: left !important;
+}
+
+.totals-section {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
+
+.totals-table {
+  width: 150px;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+
+.totals-table td {
+  border: 1px solid #333;
+  padding: 3px;
+}
+
+.totals-table .label-cell {
+  font-weight: bold;
+  text-align: right;
+  width: 100px;
+  font-size: 10px;
+}
+
+.totals-table .value-cell {
+  text-align: right;
+}
+
+.totals-table input {
+  width: 100%;
+  border: none;
+  text-align: right;
+  font-family: inherit;
+  padding: 2px;
+  font-size: 10px;
+}
+
+.amount-in-words {
+  margin-bottom: 10px;
+}
+
+.amount-in-words label {
+  font-weight: bold;
+  margin-right: 5px;
+  font-size: 10px;
+}
+
+.amount-in-words input {
+  border: none;
+  border-bottom: 1px solid #333;
+  width: calc(100% - 60px);
+  font-family: inherit;
+  padding: 2px;
+  font-size: 10px;
+}
+
+.payment-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.payment-field {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.payment-field label {
+  font-weight: bold;
+  font-size: 10px;
+}
+
+.payment-field input[type="text"] {
+  border: none;
+  border-bottom: 1px solid #333;
+  flex: 1;
+  font-family: inherit;
+  padding: 2px;
+  font-size: 10px;
+}
+
+.payment-field input[type="checkbox"] {
+  width: 12px;
+  height: 12px;
+}
+
+.footer-note {
+  text-align: center;
+  font-size: 10px;
+  font-weight: bold;
+  margin-top: 20px;
+  padding-top: 10px;
+  border-top: 1px solid #333;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  margin-top: 15px;
+  padding-top: 10px;
+  border-top: 1px solid #333;
+}
+
+.btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: bold;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.btn-print {
+  background-color: #4a90e2;
+  color: white;
+}
+
+.btn-print:hover {
+  background-color: #357abd;
+}
+
+.btn-clear {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.btn-clear:hover {
+  background-color: #c0392b;
+}
+
+@media print {
+  .invoice-page {
+    background-color: white;
+    padding: 0;
+  }
+
+  .invoice-container {
+    box-shadow: none;
+    padding: 10px;
+    max-width: 100%;
+  }
+
+  .action-buttons {
+    display: none;
+  }
+}
