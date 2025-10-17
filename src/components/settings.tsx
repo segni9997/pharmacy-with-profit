@@ -137,7 +137,7 @@ export function FloatingSettingsWidget() {
                         htmlFor="low_stock_threshold"
                         className="text-sm font-medium"
                       >
-                        Low Stock Threshold
+                        Low Stock(carton) Threshold
                       </Label>
                       {isAdmin ? (
                         <Input

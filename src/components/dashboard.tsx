@@ -97,7 +97,7 @@ export function Dashboard() {
         <div className="flex h-16 items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <h1 className="md:text-3xl text-md font-bold md:font-extrabold text-primary tracking-wide">
-              TO HIM PHARMACY
+              NATI PHARMACY
             </h1>
           </div>
           <div className="flex items-center gap-6">

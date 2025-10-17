@@ -219,7 +219,7 @@ const toWords = new ToWords({
       <div className="invoice-container">
         <div className="invoice-header">
           <div className="pharmacy-name-amharic">ቱሂም መድኃኒት ቤት</div>
-          <div className="pharmacy-name-english">TO HIM PHARMACY</div>
+          <div className="pharmacy-name-english">NATI PHARMACY</div>
           <div className="phone-number">
             <span>☎</span>
             <span>0995-969797</span>
