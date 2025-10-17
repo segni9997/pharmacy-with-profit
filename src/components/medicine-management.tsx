@@ -1,4 +1,3 @@
-"use client";
 
 import type React from "react";
 import { useState, useMemo } from "react";
@@ -127,8 +126,9 @@ export function MedicineManagement() {
     buying_price: "",
     price: "",
     stock:"",
-    stock_in_carton: "",
+    stock_carton: "",
     stock_in_unit: "",
+    units_per_carton:"",
     expire_date: "",
     unit: "Strip" as MedicineUnit,
   });
@@ -201,7 +201,7 @@ export function MedicineManagement() {
 
   // stock calculation start here
 const calculateTotalPieces = () => {
-  const cartons = Number.parseInt(formData.stock_in_carton) || 0;
+  const cartons = Number.parseInt(formData.stock_carton) || 0;
   const itemsPerCarton = Number.parseInt(formData.stock_in_unit) || 0;
   const totalPieces = cartons * itemsPerCarton;
 
@@ -345,8 +345,9 @@ console.log(expiryDays)
       buying_price: "",
       price: "",
       stock: "",
-      stock_in_carton: "",
+      stock_carton: "",
       stock_in_unit: "",
+      units_per_carton:"",
       expire_date: formData.expire_date || "",
       unit: formData.unit || "Strip" as MedicineUnit,
     });
@@ -364,9 +365,10 @@ console.log(expiryDays)
       company_name: "",
       items_per_carton: "",
       piece_price: "",
-      stock_in_carton: "",
+      stock_carton: "",
       stock_in_unit: "",
       buying_price: "",
+      units_per_carton:"",
       price: "",
       stock: "",
       expire_date: "",
@@ -467,9 +469,10 @@ const { cartons, totalPieces } = calculateTotalPieces();
           stock: Number.parseInt(formData.stock) || totalPieces,
           department_id: formData.department,
           unit: formData.unit,
+          units_per_carton:Number.parseInt(formData.units_per_carton),
           stock_in_unit:
             Number.parseInt(formData.stock) || totalPieces,
-          stock_in_carton: Number.parseInt(formData.stock_in_carton) || cartons ,
+          stock_carton: Number.parseInt(formData.stock_carton) || cartons ,
         }).unwrap();
         toast.success("Medicine updated successfully");
         setIsAddSheetOpen(false);
@@ -496,8 +499,9 @@ const { cartons, totalPieces } = calculateTotalPieces();
           company_name: formData.company_name
         }
         ),
+        units_per_carton:Number.parseInt(formData.units_per_carton),
         stock_in_unit: Number.parseInt(formData.stock) || totalPieces,
-        stock_in_carton: Number.parseInt(formData.stock_in_carton) || cartons,
+        stock_carton: Number.parseInt(formData.stock_carton) || cartons,
       };
       console.log("med", newMed);
       try {
@@ -523,7 +527,7 @@ const { cartons, totalPieces } = calculateTotalPieces();
       department: medicine.department.id.toString(),
       unit_type: (medicine.unit as MedicineUnit) || "Strip",
       company_name: medicine.company_name || "",
-      number_of_cartons: medicine.stock_in_carton?.toString() || "",
+      number_of_cartons: medicine.stock_carton?.toString() || "",
       items_per_carton: medicine.stock_in_unit?.toString() || "",
       piece_price: medicine.price?.toString() || "",
       buying_price: medicine.buying_price?.toString() || "",
@@ -531,7 +535,8 @@ const { cartons, totalPieces } = calculateTotalPieces();
       stock: medicine.stock.toString(),
       expire_date: medicine.expire_date.split("T")[0],
       unit: medicine.unit as MedicineUnit,
-      stock_in_carton: medicine.stock_in_carton.toString(),
+      units_per_carton:medicine.units_per_carton.toString(),
+      stock_carton: medicine.stock_carton.toString(),
       stock_in_unit: medicine.stock_in_unit.toString(),
     });
     setIsAddSheetOpen(true);
@@ -873,19 +878,43 @@ const { cartons, totalPieces } = calculateTotalPieces();
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                               <div className="space-y-2">
                                 <Label htmlFor="stock_in_unit">
-                                  Stock In Carton
+                                   {formData.unit} In Carton
                                 </Label>
                                 <Input
                                   id="stock_in_unit"
                                   type="number"
-                                  value={formData.stock_in_carton}
+                                  value={formData.stock_carton}
                                   onChange={(e) =>
                                     setFormData((prev) => ({
                                       ...prev,
-                                      stock_in_carton: e.target.value,
+                                      stock_carton: e.target.value,
+                                    }))
+                                  }
+                                  className="border-2 border-primary/30 focus:border-primary"
+                                  placeholder={
+                                    calculateTotalPieces().cartons > 0
+                                      ? `Auto: ${
+                                          calculateTotalPieces().cartons
+                                        }`
+                                      : "0"
+                                  }
+                                />
+                              </div>
+                               <div className="space-y-2">
+                                <Label htmlFor="units per carton">
+                                  {formData.unit}  per Carton
+                                </Label>
+                                <Input
+                                  id="units_per_carton"
+                                  type="number"
+                                  value={formData.units_per_carton}
+                                  onChange={(e) =>
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      units_per_carton: e.target.value,
                                     }))
                                   }
                                   className="border-2 border-primary/30 focus:border-primary"
@@ -1016,11 +1045,11 @@ const { cartons, totalPieces } = calculateTotalPieces();
                                     <Input
                                       id="number_of_cartons"
                                       type="number"
-                                      value={formData.stock_in_carton}
+                                      value={formData.stock_carton}
                                       onChange={(e) =>
                                         setFormData((prev) => ({
                                           ...prev,
-                                          stock_in_carton: e.target.value,
+                                          stock_carton: e.target.value,
                                         }))
                                       }
                                       className="h-9 border-2 border-primary/30 focus:border-primary"

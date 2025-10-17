@@ -34,7 +34,9 @@ export type MedicinePayload = {
   price: number;
   stock: number;
   stock_in_unit: number;
-  stock_in_carton: number;
+  stock_carton: number;
+  units_per_carton:number;
+
   unit: MedicineUnit;
   company_name?: string;
   department_id: string;
@@ -53,7 +55,8 @@ export type GetMedicine = {
   profit_per_item: number;
   stock: number;
   stock_in_unit: number;
-  stock_in_carton: number;
+  stock_carton: number;
+  units_per_carton:number;
   low_stock_threshold: number;
   unit: MedicineUnit;
   unit_display: string;
