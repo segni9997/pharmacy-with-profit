@@ -59,6 +59,7 @@ export function AnalyticsDashboard() {
   const navigate = useNavigate();
   const [timeRange, setTimeRange] = useState("7d");
   const { data: analyticsData, isLoading } = useGetAnalyticsQuery();
+  console.log(analyticsData)
   const { data: profit, isLoading: isProfitLoading } =
     useGetProfitSummaryQuery();
   console.log("profit", analyticsData);
@@ -582,7 +583,7 @@ export function AnalyticsDashboard() {
                           className="flex items-center justify-between p-3 border border-orange-200 bg-orange-50 rounded-lg"
                         >
                           <div className="flex-1">
-                            <h4 className="font-medium text-sm">{item.name}</h4>
+                            <h4 className="font-medium text-sm">{item.brand_name}</h4>
                             <p className="text-xs text-gray-600">
                               Current stock: {item.stock} units
                             </p>
@@ -603,7 +604,7 @@ export function AnalyticsDashboard() {
                           className="flex items-center justify-between p-3 border border-red-200 bg-red-50 rounded-lg"
                         >
                           <div className="flex-1">
-                            <h4 className="font-medium text-sm">{item.name}</h4>
+                            <h4 className="font-medium text-sm">{item.brand_name}</h4>
                             <p className="text-xs text-gray-600">
                               Out of stock
                             </p>
@@ -621,7 +622,7 @@ export function AnalyticsDashboard() {
                           className="flex items-center justify-between p-3 border border-yellow-200 bg-yellow-50 rounded-lg"
                         >
                           <div className="flex-1">
-                            <h4 className="font-medium text-sm">{item.name}</h4>
+                            <h4 className="font-medium text-sm">{item.brand_name}</h4>
                             <p className="text-xs text-gray-600">
                               Expires soon
                             </p>
