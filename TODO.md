@@ -1,18 +1,17 @@
-# TODO: Add Delete Functionality to Sold Medicines Page
+# TODO: Create Pharmacy Settings Page
 
-## Updated Plan:
-- Use toast.custom for deletion confirmation instead of a Dialog.
-- Add delete button with Trash icon in Actions column.
-- Use existing useDeleteSaleMutation.
-- Handle success/error with toasts and refetch.
+## Steps to Complete
 
-## Steps:
+- [ ] Add Settings interface to src/lib/types.ts
+- [ ] Create src/store/settingsApi.ts with GET and UPDATE endpoints
+- [ ] Update src/store/store.ts to include settingsApi
+- [ ] Create src/components/settings.tsx: Page with small card displaying settings and a button to open edit dialog
+- [ ] Add /settings route in src/App.tsx
+- [ ] Add settings link in src/components/dashboard.tsx navigation cards
+- [ ] Implement fetch on page load and update functionality in settings.tsx
+- [ ] Apply settings globally if needed (e.g., for low_stock_threshold usage)
+- [ ] Test API integration and ensure settings persist and are used where applicable
 
-- [x] Step 1: Import necessary components and hooks in src/pos/sold-medicines.tsx (Trash icon, useDeleteSaleMutation, toast)
-- [x] Step 2: Add the useDeleteSaleMutation hook
-- [x] Step 3: Implement the delete handler function using toast.custom for confirmation, with Yes/No buttons
-- [x] Step 4: On confirm, call the mutation, handle success (toast success, refetch), error (toast error)
-- [x] Step 5: Add the delete button (with Trash icon) to the Actions column in the table row
-- [x] Step 6: Update TODO.md to mark Step 1-5 as complete after implementation
-- [x] Step 7: Test the delete functionality and verify table updates
-- [x] Step 8: Finalize and complete the task
+## Followup Steps
+- [ ] Test API integration
+- [ ] Ensure settings persist and are used in medicine management (e.g., low_stock_threshold)

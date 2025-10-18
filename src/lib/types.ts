@@ -99,6 +99,8 @@ export interface Sale {
   sale_date: string;
   sold_by: string;
   sold_by_name: string;
+  sold_by_username?: string;
+
   items: SaleItem[];
 }
 
@@ -197,4 +199,11 @@ export interface ProfitSummary {
   daily_profit: number;
   weekly_profit: number;
   monthly_profit: number;
+}
+
+export interface Settings {
+  id: string;
+  discount: number;
+  low_stock_threshold: number;
+  expired_date: number; // days
 }

@@ -8,6 +8,7 @@ import { unitApi } from "./unitApi";
 import { refillApi } from "./refillApi";
 import { saleApi } from "./saleApi";
 import { dashboardApi } from "./dashboardApi";
+import { settingsApi } from "./settingsApi";
 
 export const store = configureStore({
   reducer: {
@@ -18,6 +19,7 @@ export const store = configureStore({
     [refillApi.reducerPath]: refillApi.reducer,
     [saleApi.reducerPath]: saleApi.reducer,
     [dashboardApi.reducerPath]: dashboardApi.reducer,
+    [settingsApi.reducerPath]: settingsApi.reducer,
     auth: authReducer,
   },
   middleware: (getDefaultMiddleware) =>
@@ -28,7 +30,8 @@ export const store = configureStore({
       .concat(unitApi.middleware)
       .concat(refillApi.middleware)
       .concat(saleApi.middleware)
-      .concat(dashboardApi.middleware),
+      .concat(dashboardApi.middleware)
+      .concat(settingsApi.middleware),
 });
 
 // for TypeScript types

@@ -70,8 +70,6 @@ import {
   Search,
   Edit,
   Trash2,
-  RefreshCw,
-  History,
   Download,
   X,
   Menu,
@@ -81,10 +79,10 @@ import * as XLSX from "xlsx";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { jwtDecode } from "jwt-decode";
 import {
-  useCreateUnitMutation,
-  useDeleteUnitMutation,
   useGetUnitsQuery,
+  useCreateUnitMutation,
   useUpdateUnitMutation,
+  useDeleteUnitMutation,
   type Unit,
 } from "@/store/unitApi";
 import { toast } from "sonner";
@@ -96,10 +94,10 @@ import {
   type MedicineUnit,
   type GetMedicine,
 } from "@/store/medicineApi";
-import { useCreateRefillMutation, useGetRefillsQuery } from "@/store/refillApi";
 
 import { useQueryParamsState } from "@/hooks/useQueryParamsState";
 import { Pagination } from "@/components/ui/pagination";
+import { useGetSettingsQuery } from "@/store/settingsApi";
 
 export function MedicineManagement() {
   const {
@@ -109,26 +107,28 @@ export function MedicineManagement() {
     setItemsPerPage,
     unit,
     setUnit,
+    batchNo,
+    setBatchNo,
   } = useQueryParamsState();
 
   const [unitCurrentPage, setUnitCurrentPage] = useState(1);
   const [unitItemsPerPage, setUnitItemsPerPage] = useState(10);
   const [formData, setFormData] = useState({
     brand_name: "",
-    generic_name: "",
+    items_name: "",
     batch_no: "",
     manufacture_date: "",
     department: "",
     company_name: "",
-    FSNO: "",
     unit_type: "Strip" as MedicineUnit,
-    number_of_boxes: "",
-    strips_per_box: "",
-    pieces_per_strip: "",
+    number_of_cartons: "",
+    items_per_carton: "",
     piece_price: "",
     buying_price: "",
     price: "",
-    stock: "",
+    stock:"",
+    stock_in_carton: "",
+    stock_in_unit: "",
     expire_date: "",
     unit: "Strip" as MedicineUnit,
   });
@@ -147,12 +147,13 @@ export function MedicineManagement() {
       pageNumber: currentPage,
       pageSize: itemsPerPage,
       unit,
+      batch_no: batchNo,
     },
     {
       refetchOnMountOrArgChange: true,
     }
   );
-  const { data: refills, refetch: refetchRefills } = useGetRefillsQuery();
+  const {data:settings}= useGetSettingsQuery()
   const [AddUnit, { isLoading: isUnitAdding }] = useCreateUnitMutation();
   const [UpdateUnit] = useUpdateUnitMutation();
   const [DeleteUnit] = useDeleteUnitMutation();
@@ -160,7 +161,6 @@ export function MedicineManagement() {
     useCreateMedicineMutation();
   const [UpdateMedicine] = useUpdateMedicineMutation();
   const [DeleteMedicine] = useDeleteMedicineMutation();
-  const [createRefill, { isLoading: isRefilling }] = useCreateRefillMutation();
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -169,29 +169,7 @@ export function MedicineManagement() {
   const [editingMedicine, setEditingMedicine] = useState<GetMedicine | null>(
     null
   );
-  const [isRefillDialogOpen, setIsRefillDialogOpen] = useState(false);
-  const [refillingMedicine, setRefillingMedicine] =
-    useState<GetMedicine | null>(null);
-  const [refillFormData, setRefillFormData] = useState({
-    quantity: "",
-    refill_date: new Date().toISOString().split("T")[0],
-    end_date: "",
-    batch_no: "",
-    medicine: "",
-    department: "",
-    manufacture_date: "",
-    company_name: "",
-    FSNO: "",
-    expire_date: "",
-    price: "",
-    number_of_boxes: "",
-    strips_per_box: "",
-    pieces_per_strip: "",
-  });
-  const [isHistoryDialogOpen, setIsHistoryDialogOpen] = useState(false);
-  const [historyMedicine, setHistoryMedicine] = useState<GetMedicine | null>(
-    null
-  );
+
   const [isAddUnitDialogOpen, setIsAddUnitDialogOpen] = useState(false);
   const [unitFormData, setUnitFormData] = useState({
     id: "",
@@ -218,26 +196,25 @@ export function MedicineManagement() {
     { value: "Suppository", label: "Suppository" },
     { value: "Pcs", label: "Pcs" },
     { value: "Tablet", label: "Tablet" },
-    { value: "PK", label: "PK" },
+    { value: "Pk", label: "PK" },
   ];
-  const calculateTotalPieces = () => {
-    const boxes = Number.parseInt(formData.number_of_boxes) || 0;
-    const strips = Number.parseInt(formData.strips_per_box) || 0;
-    const pieces = Number.parseInt(formData.pieces_per_strip) || 0;
-    return boxes * strips * pieces;
+
+  // stock calculation start here
+const calculateTotalPieces = () => {
+  const cartons = Number.parseInt(formData.stock_in_carton) || 0;
+  const itemsPerCarton = Number.parseInt(formData.stock_in_unit) || 0;
+  const totalPieces = cartons * itemsPerCarton;
+
+  return {
+    cartons,
+    totalPieces,
   };
+};
 
   const calculateEstimatedTotalPrice = () => {
-    const totalPieces = calculateTotalPieces();
+    calculateTotalPieces().totalPieces
     const piecePrice = Number.parseFloat(formData.piece_price) || 0;
     return totalPieces * piecePrice;
-  };
-
-  const calculateRefillTotalPieces = () => {
-    const boxes = Number.parseInt(refillFormData.number_of_boxes) || 0;
-    const strips = Number.parseInt(refillFormData.strips_per_box) || 0;
-    const pieces = Number.parseInt(refillFormData.pieces_per_strip) || 0;
-    return boxes * strips * pieces;
   };
 
   const calculateProfitPerUnit = () => {
@@ -248,9 +225,10 @@ export function MedicineManagement() {
   };
 
   const calculateTotalProfit = () => {
+    const { totalPieces } = calculateTotalPieces();
     const profitPerUnit = calculateProfitPerUnit();
     const totalStock =
-      Number.parseInt(formData.stock) || calculateTotalPieces();
+      Number.parseInt(formData.stock) || totalPieces;
     return profitPerUnit * totalStock;
   };
 
@@ -261,6 +239,8 @@ export function MedicineManagement() {
     if (buyingPrice === 0) return 0;
     return ((sellingPrice - buyingPrice) / buyingPrice) * 100;
   };
+
+  // end here
 
   const [isUnitSheetOpen, setIsUnitSheetOpen] = useState(false);
   const [inlineEditingUnit, setInlineEditingUnit] = useState<string | null>(
@@ -283,14 +263,12 @@ export function MedicineManagement() {
           medicine.brand_name
             .toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-          medicine.generic_name
+          medicine.item_name
             ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-          medicine.batch_no.toLowerCase().includes(searchTerm.toLowerCase()) ||
           medicine.company_name
             ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          medicine.FSNO?.toLowerCase().includes(searchTerm.toLowerCase());
+            .includes(searchTerm.toLowerCase()) 
 
         const matchesCategory =
           selectedCategory === "all" ||
@@ -302,62 +280,92 @@ export function MedicineManagement() {
   }, [meds, searchTerm, selectedCategory, selectedUnitType]);
 
   const getStockStatus = (quantity: number) => {
+
     if (quantity === 0)
       return { label: "Out of Stock", variant: "destructive" as const };
-    if (quantity < 10)
-      return { label: "Low Stock", variant: "secondary" as const };
+    if (settings && quantity <= settings.low_stock_threshold) {
+      return { label: "Low Stock", variant: "warning" as const };
+    }
+
     return { label: "In Stock", variant: "default" as const };
   };
 
-  const getExpiryStatus = (expiryDate: Date) => {
-    const today = new Date();
-    const thirtyDaysFromNow = new Date(
-      today.getTime() + 30 * 24 * 60 * 60 * 1000
-    );
+const getExpiryStatus = (expiryDate: Date) => {
+  const today = new Date();
 
-    if (expiryDate < today)
-      return { label: "Expired", variant: "destructive" as const };
-    if (expiryDate <= thirtyDaysFromNow)
-      return { label: "Near Expiry", variant: "secondary" as const };
-    return { label: "Valid", variant: "default" as const };
+  // ✅ Fallback to 30 days if settings aren’t loaded yet
+  const expiryDays = settings?.expired_date ?? 20;
+console.log(expiryDays)
+  const alertDate = new Date(
+    today.getTime() + expiryDays * 24 * 60 * 60 * 1000
+  );
+  console.log("alertdate", alertDate)
+  const diffTime = expiryDate.getTime() - today.getTime();
+  const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  console.log("diff", diffTime, remainingDays);
+
+  if (expiryDate < today)
+    return {
+      label: "Expired",
+      variant: "destructive" as const,
+      message: `Expired ${Math.abs(remainingDays)} day${
+        Math.abs(remainingDays) !== 1 ? "s" : ""
+      } ago`,
+    };
+
+  if (expiryDate <= alertDate)
+    return {
+      label: `Expires in ${remainingDays} day${remainingDays !== 1 ? "s" : ""}`,
+      variant: "warning" as const,
+      message: `Expires in ${remainingDays} day${
+        remainingDays !== 1 ? "s" : ""
+      }`,
+    };
+
+  return {
+    label: "Valid",
+    variant: "default" as const,
+    message: `Expires in ${remainingDays} day${remainingDays !== 1 ? "s" : ""}`,
   };
+};
+
 
   const resetForm = () => {
     setFormData({
       brand_name: formData.brand_name || "",
-      generic_name: formData.generic_name || "",
-      batch_no: formData.batch_no || "",
-      manufacture_date: formData.manufacture_date || "",
+      items_name: formData.items_name || "",
+      batch_no:  "",
+      manufacture_date:  "",
       department: formData.department || "",
-      unit_type: "Strip" as MedicineUnit,
-      number_of_boxes: "",
-      company_name: "",
-      FSNO: "",
-      strips_per_box: "",
-      pieces_per_strip: "",
+      unit_type: formData.unit_type || "Strip" as MedicineUnit,
+      number_of_cartons: formData.number_of_cartons || "",
+      company_name: formData.company_name || "",
+      items_per_carton: formData.items_per_carton ||  "",
       piece_price: "",
       buying_price: "",
       price: "",
       stock: "",
+      stock_in_carton: "",
+      stock_in_unit: "",
       expire_date: formData.expire_date || "",
-      unit: "Strip" as MedicineUnit,
+      unit: formData.unit || "Strip" as MedicineUnit,
     });
     setEditingMedicine(null);
   };
   const handleResetForm = () => {
     setFormData({
       brand_name: "",
-      generic_name: "",
+      items_name: "",
       batch_no: "",
       manufacture_date: "",
       department: "",
       unit_type: "Strip" as MedicineUnit,
-      number_of_boxes: "",
+      number_of_cartons: "",
       company_name: "",
-      FSNO: "",
-      strips_per_box: "",
-      pieces_per_strip: "",
+      items_per_carton: "",
       piece_price: "",
+      stock_in_carton: "",
+      stock_in_unit: "",
       buying_price: "",
       price: "",
       stock: "",
@@ -379,9 +387,7 @@ export function MedicineManagement() {
     if (!formData.batch_no.trim()) {
       errors.push("Batch Number is required");
     }
-    if (!formData.manufacture_date) {
-      errors.push("Manufacture Date is required");
-    }
+
     if (!formData.expire_date) {
       errors.push("Expiry Date is required");
     }
@@ -391,19 +397,16 @@ export function MedicineManagement() {
     if (!formData.department) {
       errors.push("Department is required");
     }
-    if (!formData.company_name) {
-      errors.push("Company name is required");
-    }
-    if (!formData.FSNO) {
-      errors.push("FS.NO  is required");
-    }
+  
     if (
       !formData.buying_price ||
       Number.parseFloat(formData.buying_price) <= 0
     ) {
       errors.push("Buying Price must be greater than 0");
     }
-
+  if (!formData.piece_price || Number.parseFloat(formData.piece_price) <= 0) {
+    errors.push("Selling Price must be greater than 0");
+  }
     // Date validation
     if (formData.manufacture_date && formData.expire_date) {
       const manufactureDate = new Date(formData.manufacture_date);
@@ -420,8 +423,9 @@ export function MedicineManagement() {
       }
     } else {
       // Validation for adding
+      const {  totalPieces } = calculateTotalPieces();
       const totalStock =
-        Number.parseInt(formData.stock) || calculateTotalPieces();
+        Number.parseInt(formData.stock) || totalPieces
       if (totalStock <= 0) {
         errors.push(
           "Stock quantity must be greater than 0. Please enter stock manually or provide calculation details."
@@ -440,7 +444,7 @@ export function MedicineManagement() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+const { cartons, totalPieces } = calculateTotalPieces();
     // Validate form
     const validationErrors = validateForm();
     if (validationErrors.length > 0) {
@@ -453,17 +457,19 @@ export function MedicineManagement() {
         await UpdateMedicine({
           id: editingMedicine.id,
           brand_name: formData.brand_name,
-          generic_name: formData.generic_name,
+          item_name: formData.items_name,
           batch_no: formData.batch_no,
           manufacture_date: formData.manufacture_date,
           company_name: formData.company_name,
-          FSNO: formData.FSNO,
           expire_date: formData.expire_date,
-          buying_price: formData.buying_price,
-          price: formData.price,
-          stock: Number.parseInt(formData.stock) || calculateTotalPieces(),
+          buying_price: Number.parseFloat(formData.buying_price),
+          price: Number.parseFloat(formData.price),
+          stock: Number.parseInt(formData.stock) || totalPieces,
           department_id: formData.department,
           unit: formData.unit,
+          stock_in_unit:
+            Number.parseInt(formData.stock) || totalPieces,
+          stock_in_carton: Number.parseInt(formData.stock_in_carton) || cartons ,
         }).unwrap();
         toast.success("Medicine updated successfully");
         setIsAddSheetOpen(false);
@@ -474,50 +480,59 @@ export function MedicineManagement() {
     } else {
       const newMed = {
         brand_name: formData.brand_name,
-        generic_name: formData.generic_name,
+        item_name: formData.items_name,
         batch_no: formData.batch_no,
-        manufacture_date: formData.manufacture_date,
+        ...(formData.manufacture_date && {
+          manufacture_date: formData.manufacture_date,
+        }),
+        // manufacture_date: formData.manufacture_date,
         expire_date: formData.expire_date,
-        buying_price: formData.buying_price,
-        price: formData.piece_price,
-        stock: Number.parseInt(formData.stock) || calculateTotalPieces(),
+        buying_price: Number.parseFloat(formData.buying_price),
+        price: Number.parseFloat(formData.piece_price),
+        stock: Number.parseInt(formData.stock) || totalPieces,
         department_id: formData.department,
         unit: formData.unit,
-        company_name: formData.company_name,
-        FSNO: formData.FSNO,
+        ...(formData.company_name && {
+          company_name: formData.company_name
+        }
+        ),
+        stock_in_unit: Number.parseInt(formData.stock) || totalPieces,
+        stock_in_carton: Number.parseInt(formData.stock_in_carton) || cartons,
       };
-    console.log("med", newMed)
+      console.log("med", newMed);
       try {
         await CreateMedicine(newMed).unwrap();
         toast.success("Medicine added successfully");
         refetchMeds();
+        resetForm();
       } catch (error) {
+        console.log(error);
         toast.error("Failed to add medicine");
       }
     }
     // resetForm();
   };
- 
+
   const handleEdit = (medicine: GetMedicine) => {
     setEditingMedicine(medicine);
     setFormData({
       brand_name: medicine.brand_name,
-      generic_name: medicine.generic_name || "",
+      items_name: medicine.item_name || "",
       batch_no: medicine.batch_no,
       manufacture_date: medicine.manufacture_date,
       department: medicine.department.id.toString(),
-      unit_type: (medicine.unit_type as MedicineUnit) || "Strip",
+      unit_type: (medicine.unit as MedicineUnit) || "Strip",
       company_name: medicine.company_name || "",
-      FSNO: medicine.FSNO || "",
-      number_of_boxes: medicine.number_of_boxes?.toString() || "",
-      strips_per_box: medicine.strips_per_box?.toString() || "",
-      pieces_per_strip: medicine.pieces_per_strip?.toString() || "",
+      number_of_cartons: medicine.stock_in_carton?.toString() || "",
+      items_per_carton: medicine.stock_in_unit?.toString() || "",
       piece_price: medicine.price?.toString() || "",
       buying_price: medicine.buying_price?.toString() || "",
       price: medicine.price.toString(),
       stock: medicine.stock.toString(),
       expire_date: medicine.expire_date.split("T")[0],
       unit: medicine.unit as MedicineUnit,
+      stock_in_carton: medicine.stock_in_carton.toString(),
+      stock_in_unit: medicine.stock_in_unit.toString(),
     });
     setIsAddSheetOpen(true);
   };
@@ -534,67 +549,7 @@ export function MedicineManagement() {
     }
   };
 
-  const handleRefill = (medicine: GetMedicine) => {
-    setRefillingMedicine(medicine);
-    setRefillFormData({
-      quantity: "",
-      refill_date: new Date().toISOString().split("T")[0],
-      end_date: "",
-      batch_no: "",
-      medicine: medicine.id,
-      department: medicine.department.id,
-      manufacture_date: "",
-      company_name: medicine.company_name || "",
-      FSNO: medicine.FSNO || "",
-      expire_date: "",
-      price: medicine.price,
-      number_of_boxes: "",
-      strips_per_box: "",
-      pieces_per_strip: "",
-    });
-    setIsRefillDialogOpen(true);
-  };
 
-  const handleRefillSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!refillingMedicine) return;
-    try {
-      let quantityToAdd = Number.parseInt(refillFormData.quantity);
-      if (isNaN(quantityToAdd) || quantityToAdd <= 0) {
-        // If quantity is empty or invalid, use the calculated total pieces
-        quantityToAdd = calculateRefillTotalPieces();
-        if (quantityToAdd <= 0) {
-          toast.error("Please enter a quantity or provide calculation details");
-          return;
-        }
-      }
-
-      await createRefill({
-        code_no: refillingMedicine.code_no,
-        medicine: refillFormData.medicine,
-        quantity: quantityToAdd,
-        batch_no: refillFormData.batch_no,
-        department: refillFormData.department,
-
-        manufacture_date: refillFormData.manufacture_date,
-        expire_date: refillFormData.expire_date,
-        price: refillFormData.price,
-      }).unwrap();
-
-      refetchRefills();
-      refetchMeds();
-      toast.success("Refill added successfully");
-      setIsRefillDialogOpen(false);
-      setRefillingMedicine(null);
-    } catch (error) {
-      toast.error("Failed to add refill");
-    }
-  };
-
-  const handleHistory = (medicine: GetMedicine) => {
-    setHistoryMedicine(medicine);
-    setIsHistoryDialogOpen(true);
-  };
 
   const handleUnitSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -621,17 +576,14 @@ export function MedicineManagement() {
   const handleExport = () => {
     const data = filteredMedicines.map((med) => ({
       "Medicine Name": med.brand_name,
-      "Generic Name": med.generic_name || "",
+      "Items Name": med.item_name || "",
       Unit: getCategoryName(med.department.id.toString()),
       "Company Name": med.company_name || "",
-      FSNO: med.FSNO || "",
       Batch: med.batch_no,
       Price: med.price.toString(),
-
       Stock: med.stock.toString(),
       "Expiry Date": new Date(med.expire_date).toLocaleDateString(),
       Status: getExpiryStatus(new Date(med.expire_date)).label,
-      Refills: med.refill_count?.toString() || "0",
     }));
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
@@ -643,6 +595,8 @@ export function MedicineManagement() {
     setSelectedUnitType(value === "all" ? "" : value);
     setUnit(value === "all" ? "" : value);
   };
+  const { totalPieces } = calculateTotalPieces();
+  
   return (
     <div className="min-h-screen bg-gradient-to-r from-background via-card to-background dark:from-background dark:via-card dark:to-background">
       {/* Header */}
@@ -694,9 +648,7 @@ export function MedicineManagement() {
                           <div className="lg:col-span-2 space-y-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <Label htmlFor="brand_name">
-                                  Brand Name *
-                                </Label>
+                                <Label htmlFor="brand_name">Brand Name *</Label>
                                 <Input
                                   id="brand_name"
                                   value={formData.brand_name}
@@ -712,15 +664,15 @@ export function MedicineManagement() {
                               </div>
                               <div className="space-y-2">
                                 <Label htmlFor="genericName">
-                                  Generic Name (Optional)
+                                  Items Name (Optional)
                                 </Label>
                                 <Input
                                   id="genericName"
-                                  value={formData.generic_name}
+                                  value={formData.items_name}
                                   onChange={(e) =>
                                     setFormData((prev) => ({
                                       ...prev,
-                                      generic_name: e.target.value,
+                                      items_name: e.target.value,
                                     }))
                                   }
                                   className="border-2 border-primary/30 focus:border-primary"
@@ -746,30 +698,78 @@ export function MedicineManagement() {
                                   required
                                 />
                               </div>
+
                               <div className="space-y-2">
-                                <Label htmlFor="stockQuantity">
-                                  Stock (or use calculation)
+                                <Label htmlFor="company_name">
+                                  Company Name
                                 </Label>
                                 <Input
-                                  id="stockQuantity"
-                                  type="number"
-                                  value={formData.stock}
+                                  id="company_name"
+                                  value={formData.company_name}
                                   onChange={(e) =>
                                     setFormData((prev) => ({
                                       ...prev,
-                                      stock: e.target.value,
+                                      company_name: e.target.value,
                                     }))
                                   }
                                   className="border-2 border-primary/30 focus:border-primary"
-                                  placeholder={
-                                    calculateTotalPieces() > 0
-                                      ? `Auto: ${calculateTotalPieces()}`
-                                      : "0"
-                                  }
                                 />
                               </div>
                             </div>
-
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="unit_type">Unit Type *</Label>
+                                <Select
+                                  value={formData.unit}
+                                  onValueChange={(value) =>
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      unit: value as MedicineUnit,
+                                    }))
+                                  }
+                                >
+                                  <SelectTrigger className="border-2 border-primary/30 focus:border-primary">
+                                    <SelectValue placeholder="Select unit Type" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {unitTypeOptions.map((unitType) => (
+                                      <SelectItem
+                                        key={unitType.value}
+                                        value={unitType.value}
+                                      >
+                                        {unitType.label}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="unit">Department *</Label>
+                                <Select
+                                  value={formData.department}
+                                  onValueChange={(value) =>
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      department: value,
+                                    }))
+                                  }
+                                >
+                                  <SelectTrigger className="border-2 border-primary/30 focus:border-primary">
+                                    <SelectValue placeholder="Select Dept" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {Units?.results.map((category) => (
+                                      <SelectItem
+                                        key={category.id}
+                                        value={category.id.toString()}
+                                      >
+                                        {category.name}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
                                 <Label htmlFor="manufactureDate">
@@ -875,88 +875,51 @@ export function MedicineManagement() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
-                                <Label htmlFor="unit_type">Unit Type *</Label>
-                                <Select
-                                  value={formData.unit}
-                                  onValueChange={(value) =>
-                                    setFormData((prev) => ({
-                                      ...prev,
-                                      unit: value as MedicineUnit,
-                                    }))
-                                  }
-                                >
-                                  <SelectTrigger className="border-2 border-primary/30 focus:border-primary">
-                                    <SelectValue placeholder="Select unit Type" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {unitTypeOptions.map((unitType) => (
-                                      <SelectItem
-                                        key={unitType.value}
-                                        value={unitType.value}
-                                      >
-                                        {unitType.label}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="space-y-2">
-                                <Label htmlFor="unit">Department *</Label>
-                                <Select
-                                  value={formData.department}
-                                  onValueChange={(value) =>
-                                    setFormData((prev) => ({
-                                      ...prev,
-                                      department: value,
-                                    }))
-                                  }
-                                >
-                                  <SelectTrigger className="border-2 border-primary/30 focus:border-primary">
-                                    <SelectValue placeholder="Select Dept" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {Units?.results.map((category) => (
-                                      <SelectItem
-                                        key={category.id}
-                                        value={category.id.toString()}
-                                      >
-                                        {category.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="company_name">
-                                  Company Name
+                                <Label htmlFor="stock_in_unit">
+                                  Stock In Carton
                                 </Label>
                                 <Input
-                                  id="company_name"
-                                  value={formData.company_name}
+                                  id="stock_in_unit"
+                                  type="number"
+                                  value={formData.stock_in_carton}
                                   onChange={(e) =>
                                     setFormData((prev) => ({
                                       ...prev,
-                                      company_name: e.target.value,
+                                      stock_in_carton: e.target.value,
                                     }))
                                   }
                                   className="border-2 border-primary/30 focus:border-primary"
+                                  placeholder={
+                                    calculateTotalPieces().cartons > 0
+                                      ? `Auto: ${
+                                          calculateTotalPieces().cartons
+                                        }`
+                                      : "0"
+                                  }
                                 />
                               </div>
                               <div className="space-y-2">
-                                <Label htmlFor="FSNO">FSNO</Label>
+                                <Label htmlFor="stockQuantity">
+                                  Stock in Unit
+                                </Label>
                                 <Input
-                                  id="FSNO"
-                                  value={formData.FSNO}
+                                  id="stockQuantity"
+                                  type="number"
+                                  value={formData.stock_in_unit}
                                   onChange={(e) =>
                                     setFormData((prev) => ({
                                       ...prev,
-                                      FSNO: e.target.value,
+                                      stock_in_unit: e.target.value,
                                     }))
                                   }
                                   className="border-2 border-primary/30 focus:border-primary"
+                                  placeholder={
+                                    calculateTotalPieces().totalPieces > 0
+                                      ? `Auto: ${
+                                          calculateTotalPieces().totalPieces
+                                        }`
+                                      : "0"
+                                  }
                                 />
                               </div>
                             </div>
@@ -969,7 +932,7 @@ export function MedicineManagement() {
                                 <Input
                                   id="buying_price"
                                   type="number"
-                                  step="0.01"
+                                  step="0.5"
                                   value={formData.buying_price}
                                   onChange={(e) =>
                                     setFormData((prev) => ({
@@ -990,7 +953,7 @@ export function MedicineManagement() {
                                   <Input
                                     id="piece_price"
                                     type="number"
-                                    step="0.01"
+                                    step="0.5"
                                     value={formData.piece_price}
                                     onChange={(e) =>
                                       setFormData((prev) => ({
@@ -1012,7 +975,7 @@ export function MedicineManagement() {
                                   <Input
                                     id="price"
                                     type="number"
-                                    step="0.01"
+                                    step="0.5"
                                     value={formData.price}
                                     onChange={(e) =>
                                       setFormData((prev) => ({
@@ -1045,19 +1008,19 @@ export function MedicineManagement() {
                                   </h4>
                                   <div className="space-y-2">
                                     <Label
-                                      htmlFor="number_of_boxes"
+                                      htmlFor="number_of_cartons"
                                       className="text-xs"
                                     >
-                                      Boxes
+                                      Cartons
                                     </Label>
                                     <Input
-                                      id="number_of_boxes"
+                                      id="number_of_cartons"
                                       type="number"
-                                      value={formData.number_of_boxes}
+                                      value={formData.stock_in_carton}
                                       onChange={(e) =>
                                         setFormData((prev) => ({
                                           ...prev,
-                                          number_of_boxes: e.target.value,
+                                          stock_in_carton: e.target.value,
                                         }))
                                       }
                                       className="h-9 border-2 border-primary/30 focus:border-primary"
@@ -1066,40 +1029,19 @@ export function MedicineManagement() {
                                   </div>
                                   <div className="space-y-2">
                                     <Label
-                                      htmlFor="strips_per_box"
+                                      htmlFor="stock_in_unit"
                                       className="text-xs"
                                     >
-                                      Strips/Box
+                                      {formData.unit}/Carton
                                     </Label>
                                     <Input
-                                      id="strips_per_box"
+                                      id="stock_in_unit"
                                       type="number"
-                                      value={formData.strips_per_box}
+                                      value={formData.stock_in_unit}
                                       onChange={(e) =>
                                         setFormData((prev) => ({
                                           ...prev,
-                                          strips_per_box: e.target.value,
-                                        }))
-                                      }
-                                      className="h-9 border-2 border-primary/30 focus:border-primary"
-                                      placeholder="0"
-                                    />
-                                  </div>
-                                  <div className="space-y-2">
-                                    <Label
-                                      htmlFor="pieces_per_strip"
-                                      className="text-xs"
-                                    >
-                                      Pieces/Strip
-                                    </Label>
-                                    <Input
-                                      id="pieces_per_strip"
-                                      type="number"
-                                      value={formData.pieces_per_strip}
-                                      onChange={(e) =>
-                                        setFormData((prev) => ({
-                                          ...prev,
-                                          pieces_per_strip: e.target.value,
+                                          stock_in_unit: e.target.value,
                                         }))
                                       }
                                       className="h-9 border-2 border-primary/30 focus:border-primary"
@@ -1115,11 +1057,11 @@ export function MedicineManagement() {
                                       Total Pieces:
                                     </span>
                                     <span className="text-lg font-bold text-primary">
-                                      {calculateTotalPieces()}
+                                      {calculateTotalPieces().totalPieces}
                                     </span>
                                   </div>
 
-                                  {calculateTotalPieces() > 0 &&
+                                  {calculateTotalPieces().totalPieces > 0 &&
                                     formData.piece_price && (
                                       <div className="flex justify-between items-center">
                                         <span className="text-xs text-muted-foreground">
@@ -1462,369 +1404,6 @@ export function MedicineManagement() {
                   <Download className="h-4 w-4 mr-2" />
                   Export to Excel
                 </Button>
-
-                {/* Refill Dialog */}
-                <Dialog
-                  open={isRefillDialogOpen}
-                  onOpenChange={setIsRefillDialogOpen}
-                >
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>Refill Medicine</DialogTitle>
-                      <DialogDescription>
-                        Add stock to {refillingMedicine?.brand_name}
-                      </DialogDescription>
-                    </DialogHeader>
-                    <form onSubmit={handleRefillSubmit}>
-                      <div className="grid gap-4 py-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="quantity">
-                            Quantity to Add (or use calculation below)
-                          </Label>
-                          <Input
-                            id="quantity"
-                            type="number"
-                            value={refillFormData.quantity}
-                            onChange={(e) =>
-                              setRefillFormData((prev) => ({
-                                ...prev,
-                                quantity: e.target.value,
-                              }))
-                            }
-                            className="border-2 border-primary/30 focus:border-primary"
-                            placeholder={
-                              calculateRefillTotalPieces() > 0
-                                ? `Auto: ${calculateRefillTotalPieces()}`
-                                : "0"
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="manufacture_date">
-                            Manufacture Date *
-                          </Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full justify-start text-left font-normal border-2 border-primary/30 focus:border-primary",
-                                  !refillFormData.manufacture_date &&
-                                    "text-muted-foreground"
-                                )}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {refillFormData.manufacture_date ? (
-                                  format(
-                                    new Date(refillFormData.manufacture_date),
-                                    "PPP"
-                                  )
-                                ) : (
-                                  <span>Pick manufacture date</span>
-                                )}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                            >
-                              <CalendarComponent
-                                mode="single"
-                                selected={
-                                  refillFormData.manufacture_date
-                                    ? new Date(refillFormData.manufacture_date)
-                                    : undefined
-                                }
-                                onSelect={(date) =>
-                                  setRefillFormData((prev) => ({
-                                    ...prev,
-                                    manufacture_date: date
-                                      ? format(date, "yyyy-MM-dd")
-                                      : "",
-                                  }))
-                                }
-                                disabled={(date) => date > new Date()}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="expire_date">
-                            Expire Date (Optional)
-                          </Label>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={cn(
-                                  "w-full justify-start text-left font-normal border-2 border-primary/30 focus:border-primary",
-                                  !refillFormData.expire_date &&
-                                    "text-muted-foreground"
-                                )}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {refillFormData.expire_date ? (
-                                  format(
-                                    new Date(refillFormData.expire_date),
-                                    "PPP"
-                                  )
-                                ) : (
-                                  <span>Pick expiry date</span>
-                                )}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent
-                              className="w-auto p-0"
-                              align="start"
-                            >
-                              <CalendarComponent
-                                mode="single"
-                                selected={
-                                  refillFormData.expire_date
-                                    ? new Date(refillFormData.expire_date)
-                                    : undefined
-                                }
-                                onSelect={(date) =>
-                                  setRefillFormData((prev) => ({
-                                    ...prev,
-                                    expire_date: date
-                                      ? format(date, "yyyy-MM-dd")
-                                      : "",
-                                  }))
-                                }
-                                disabled={(date) => date < new Date()}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="price">Price (Birr) *</Label>
-                          <Input
-                            id="price"
-                            type="number"
-                            step="1.00"
-                            value={refillFormData.price}
-                            onChange={(e) =>
-                              setRefillFormData((prev) => ({
-                                ...prev,
-                                price: e.target.value,
-                              }))
-                            }
-                            className="border-2 border-primary/30 focus:border-primary"
-                            required
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="batch_number">Batch Number *</Label>
-                          <Input
-                            id="batch_no"
-                            value={refillFormData.batch_no}
-                            onChange={(e) =>
-                              setRefillFormData((prev) => ({
-                                ...prev,
-                                batch_no: e.target.value,
-                              }))
-                            }
-                            placeholder="Enter batch number"
-                            className="border-2 border-primary/30 focus:border-primary"
-                            required
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="company_name">Company Name</Label>
-                          <Input
-                            id="company_name"
-                            value={refillFormData.company_name}
-                            onChange={(e) =>
-                              setRefillFormData((prev) => ({
-                                ...prev,
-                                company_name: e.target.value,
-                              }))
-                            }
-                            className="border-2 border-primary/30 focus:border-primary"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="FSNO">FSNO</Label>
-                          <Input
-                            id="FSNO"
-                            value={refillFormData.FSNO}
-                            onChange={(e) =>
-                              setRefillFormData((prev) => ({
-                                ...prev,
-                                FSNO: e.target.value,
-                              }))
-                            }
-                            className="border-2 border-primary/30 focus:border-primary"
-                          />
-                        </div>
-
-                        <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
-                          <h3 className="font-semibold text-sm">
-                            Quantity Calculation (Optional)
-                          </h3>
-                          <div className="grid grid-cols-3 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="refill_number_of_boxes">
-                                Number of Boxes
-                              </Label>
-                              <Input
-                                id="refill_number_of_boxes"
-                                type="number"
-                                value={refillFormData.number_of_boxes}
-                                onChange={(e) =>
-                                  setRefillFormData((prev) => ({
-                                    ...prev,
-                                    number_of_boxes: e.target.value,
-                                  }))
-                                }
-                                className="border-2 border-primary/30 focus:border-primary"
-                                placeholder="0"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="refill_strips_per_box">
-                                Strips/Box
-                              </Label>
-                              <Input
-                                id="refill_strips_per_box"
-                                type="number"
-                                value={refillFormData.strips_per_box}
-                                onChange={(e) =>
-                                  setRefillFormData((prev) => ({
-                                    ...prev,
-                                    strips_per_box: e.target.value,
-                                  }))
-                                }
-                                className="border-2 border-primary/30 focus:border-primary"
-                                placeholder="0"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="refill_pieces_per_strip">
-                                Pieces/Strip
-                              </Label>
-                              <Input
-                                id="refill_pieces_per_strip"
-                                type="number"
-                                value={refillFormData.pieces_per_strip}
-                                onChange={(e) =>
-                                  setRefillFormData((prev) => ({
-                                    ...prev,
-                                    pieces_per_strip: e.target.value,
-                                  }))
-                                }
-                                className="border-2 border-primary/30 focus:border-primary"
-                                placeholder="0"
-                              />
-                            </div>
-                          </div>
-                          <div className="bg-primary/10 p-3 rounded-md">
-                            <p className="text-sm font-medium">
-                              Total Pieces:{" "}
-                              <span className="text-lg font-bold">
-                                {calculateRefillTotalPieces()}
-                              </span>
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setIsRefillDialogOpen(false)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button type="submit" disabled={isRefilling}>
-                          Refill
-                        </Button>
-                      </DialogFooter>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-
-                <Dialog
-                  open={isHistoryDialogOpen}
-                  onOpenChange={setIsHistoryDialogOpen}
-                >
-                  <DialogContent className="w-[95vw] sm:max-w-full lg:max-w-5xl">
-                    <DialogHeader>
-                      <DialogTitle>
-                        Refill History - {historyMedicine?.brand_name}
-                      </DialogTitle>
-                      <DialogDescription>
-                        View all refill records for this medicine
-                      </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="py-4 w-full overflow-x-auto">
-                      {(() => {
-                        const medicineRefills =
-                          refills?.results.filter(
-                            (r) => r.medicine === historyMedicine?.id.toString()
-                          ) || [];
-
-                        return medicineRefills.length > 0 ? (
-                          <div className="max-h-96 overflow-y-auto">
-                            <Table className="min-w-[800px]">
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Batch No</TableHead>
-                                  <TableHead>Manufactured Date</TableHead>
-                                  <TableHead>Refilled Quantity</TableHead>
-                                  <TableHead>Refill Date</TableHead>
-                                  <TableHead>Expire Date</TableHead>
-                                  <TableHead>Refilled By</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {medicineRefills.map((record, index) => (
-                                  <TableRow key={index}>
-                                    <TableCell>{record.batch_no}</TableCell>
-                                    <TableCell>
-                                      {record.manufacture_date}
-                                    </TableCell>
-                                    <TableCell>{record.quantity}</TableCell>
-                                    <TableCell>
-                                      {new Date(
-                                        record.refill_date
-                                      ).toLocaleDateString()}
-                                    </TableCell>
-                                    <TableCell>
-                                      {record.expire_date
-                                        ? new Date(
-                                            record.expire_date
-                                          ).toLocaleDateString()
-                                        : "N/A"}
-                                    </TableCell>
-                                    <TableCell>
-                                      {record.created_by_username}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        ) : (
-                          <p className="text-muted-foreground">
-                            No refill history available.
-                          </p>
-                        );
-                      })()}
-                    </div>
-
-                    <DialogFooter>
-                      <Button onClick={() => setIsHistoryDialogOpen(false)}>
-                        Close
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
               </div>
             </div>
           )}
@@ -1835,8 +1414,17 @@ export function MedicineManagement() {
       <main className="p-8 max-w-8xl mx-auto">
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-6 mb-8">
+              <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
+            <Input
+              placeholder="Search by Batch Number..."
+              value={batchNo}
+              onChange={(e) => setBatchNo(e.target.value)}
+              className="pl-12 h-12 border-2 border-primary/30 focus:border-primary"
+            />
+          </div>
           <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/12 text-muted-foreground h-5 w-5" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
             <Input
               placeholder="Search medicines..."
               value={searchTerm}
@@ -1844,6 +1432,8 @@ export function MedicineManagement() {
               className="pl-12 h-12 border-2 border-primary/30 focus:border-primary"
             />
           </div>
+
+      
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
             <SelectTrigger className="w-full sm:w-56 h-12 border-2 border-primary/30 focus:border-primary">
               <SelectValue placeholder="All Units" />
@@ -1938,7 +1528,6 @@ export function MedicineManagement() {
                     <TableHead className="text-foreground">
                       Company Name
                     </TableHead>
-                    <TableHead className="text-foreground">FSNO</TableHead>
                     <TableHead className="text-foreground">Batch</TableHead>
                     <TableHead className="text-foreground">
                       Buying Price
@@ -1955,9 +1544,6 @@ export function MedicineManagement() {
                     <TableHead className="text-foreground">Stock</TableHead>
                     <TableHead className="text-foreground">Expiry</TableHead>
                     <TableHead className="text-foreground">Status</TableHead>
-                    {canEdit && (
-                      <TableHead className="text-foreground">Refills</TableHead>
-                    )}
                     {canEdit && (
                       <TableHead className="text-foreground">Actions</TableHead>
                     )}
@@ -1978,7 +1564,7 @@ export function MedicineManagement() {
                               {medicine.brand_name}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              {medicine.generic_name}
+                              {medicine.item_name}
                             </div>
                           </div>
                         </TableCell>
@@ -2007,9 +1593,7 @@ export function MedicineManagement() {
                         <TableCell className="text-foreground">
                           {medicine.company_name || "N/A"}
                         </TableCell>
-                        <TableCell className="text-foreground">
-                          {medicine.FSNO || "N/A"}
-                        </TableCell>
+
                         <TableCell className="font-mono text-sm text-muted-foreground">
                           {medicine.batch_no}
                         </TableCell>
@@ -2052,29 +1636,8 @@ export function MedicineManagement() {
                           </Badge>
                         </TableCell>
                         {canEdit && (
-                          <TableCell className="text-foreground">
-                            {medicine.refill_count}
-                          </TableCell>
-                        )}
-                        {canEdit && (
                           <TableCell>
                             <div className="flex gap-3">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRefill(medicine)}
-                                className="hover:bg-accent"
-                              >
-                                <RefreshCw className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleHistory(medicine)}
-                                className="hover:bg-accent"
-                              >
-                                <History className="h-4 w-4" />
-                              </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"

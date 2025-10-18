@@ -75,11 +75,16 @@ export function POSSystem() {
     setCurrentPage,
     itemsPerPage,
     setItemsPerPage,
-  } = useQueryParamsState();
+    batchNo,
+    setBatchNo,
+  } = useQueryParamsState({
+    defaultBatchNo: "",
+  });
 
   const { data: medicines ,refetch} = useGetMedicinesQuery({
     pageNumber: currentPage,
     pageSize: itemsPerPage,
+    batch_no: batchNo,
   });
   const { data: units } = useGetUnitsQuery({
     pageNumber: 1,
@@ -109,6 +114,7 @@ export function POSSystem() {
     { value: "Of30", label: "Of 30" },
     { value: "Suppository", label: "Suppository" },
     { value: "Pcs", label: "Pcs" },
+    {value:"Pk", label:"Pk"}
   ];
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -125,12 +131,12 @@ export function POSSystem() {
     return (medicines?.results || []).filter((medicine) => {
       const matchesSearch =
         medicine.brand_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        medicine.generic_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        medicine.item_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         medicine.batch_no.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory =
         selectedCategory === "all" || medicine.department.id === selectedCategory;
       const matchesUnitType =
-        selectedUnitType === "all" || medicine.unit_type === selectedUnitType;
+        selectedUnitType === "all" || medicine.unit === selectedUnitType;
       const inStock = medicine.stock > 0;
       return matchesSearch && matchesCategory && matchesUnitType && inStock;
     });
@@ -301,6 +307,15 @@ console.log("salepayload", salePayload)
                       className="pl-10"
                     />
                   </div>
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                    <Input
+                      placeholder="Search by Batch Number..."
+                      value={batchNo}
+                      onChange={(e) => setBatchNo(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
                   <Select
                     value={selectedCategory}
                     onValueChange={setSelectedCategory}
@@ -346,11 +361,13 @@ console.log("salepayload", salePayload)
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead>Name</TableHead>
+                            <TableHead>Item Name</TableHead>
+                            <TableHead>Batch No</TableHead>
                             <TableHead>Department</TableHead>
                             <TableHead>Unit Type</TableHead>
                             <TableHead>Price</TableHead>
-                            <TableHead>Stock</TableHead>
+                            <TableHead>Cartons</TableHead>
+                            <TableHead>sock In Units</TableHead>
                             <TableHead>Add To Cart</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -361,13 +378,15 @@ console.log("salepayload", salePayload)
                               className="cursor-pointer hover:bg-muted/50"
                               onClick={() => addToCart(medicine)}
                             >
-                              <TableCell>{medicine.brand_name}</TableCell>
+                              <TableCell>{medicine.item_name}</TableCell>
+                              <TableCell>{medicine.batch_no}</TableCell>
                               <TableCell>
                                 {getCategoryName(medicine.department?.id)}
                               </TableCell>
                               <TableCell>{medicine.unit || "N/A"}</TableCell>
                               <TableCell>Birr {medicine.price}</TableCell>
-                              <TableCell>{medicine.stock}</TableCell>
+                              <TableCell>{medicine.stock_in_carton}</TableCell>
+                              <TableCell>{medicine.stock_in_unit}</TableCell>
                               <TableCell>
                                 <Button size="sm" variant="ghost">
                                   <Plus className="h-4 w-4" />
@@ -493,9 +512,7 @@ console.log("salepayload", salePayload)
               <CardContent className="space-y-8">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
-                    <Label htmlFor="customerName">
-                      Customer Name (opt.)
-                    </Label>
+                    <Label htmlFor="customerName">Customer Name (opt.)</Label>
                     <Input
                       id="customerName"
                       value={customerName}
@@ -504,9 +521,7 @@ console.log("salepayload", salePayload)
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="customerPhone">
-                      Phone Number (opt.)
-                    </Label>
+                    <Label htmlFor="customerPhone">Phone Number (opt.)</Label>
                     <Input
                       id="customerPhone"
                       value={customerPhone}
@@ -556,7 +571,9 @@ console.log("salepayload", salePayload)
                         <SelectValue placeholder="payment method" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem defaultChecked value="cash">Cash</SelectItem>
+                        <SelectItem defaultChecked value="cash">
+                          Cash
+                        </SelectItem>
                         <SelectItem value="transfer">Transfer</SelectItem>
                       </SelectContent>
                     </Select>

@@ -22,65 +22,55 @@ export type MedicineUnit =
   | "Suppository"
   | "Pcs"
   | "Tablet"
-  | "PK";
+  | "Pk";
 
-export type Medicine = {
-  id: string;
-  code_no: string;
+export type MedicinePayload = {
   brand_name: string;
-  generic_name: string;
+  item_name: string;
   batch_no: string;
-  manufacture_date: string;
-  company_name?: string;
-  FSNO?: string;
+  manufacture_date?: string ;
   expire_date: string;
-  buying_price?: string;
-  price: string;
+  buying_price: number;
+  price: number;
   stock: number;
-  department: string;
-  attachment?: string;
-  refill_count: number;
-  unit_type: MedicineUnit;
-  number_of_boxes?: number;
-  department_id?: string;
-  strips_per_box?: number;
-  pieces_per_strip?: number;
-  piece_price?: number;
-  unit: string;
+  stock_in_unit: number;
+  stock_in_carton: number;
+  unit: MedicineUnit;
+  company_name?: string;
+  department_id: string;
 };
 
 export type GetMedicine = {
-  code_no?: string;
   id: string;
   brand_name: string;
-  generic_name: string;
+  item_name: string;
   batch_no: string;
   manufacture_date: string;
-  company_name?: string;
-  FSNO?: string;
   expire_date: string;
-  buying_price?: string;
+  buying_price: string;
   price: string;
+  total_profit: number;
+  profit_per_item: number;
   stock: number;
+  stock_in_unit: number;
+  stock_in_carton: number;
+  low_stock_threshold: number;
+  unit: MedicineUnit;
+  unit_display: string;
+  company_name: string;
   department: {
+    id: string;
     code: string;
     name: string;
-    id: string;
   };
-  attachment?: string;
-  refill_count: number;
-  unit_type: MedicineUnit;
-  number_of_boxes?: number;
-  strips_per_box?: number;
-  pieces_per_strip?: number;
-  piece_price?: number;
-  unit: string;
-  profit_per_item?: number;
-  total_profit?: number;
-  is_expired?: boolean;
-  is_nearly_expired?: boolean;
-  is_out_of_stock?: boolean;
-  low_stock_threshold?: number;
+  attachment: string | null;
+  is_out_of_stock: boolean;
+  is_expired: boolean;
+  is_nearly_expired: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by: string;
+  refill_count?: number;
 };
 
 interface PaginatedMedicinesResponse {
@@ -107,40 +97,50 @@ export const medicineApi = createApi({
   endpoints: (builder) => ({
     getMedicines: builder.query<
       PaginatedMedicinesResponse,
-      { pageNumber?: number; pageSize?: number; unit?: string }
+      {
+        pageNumber?: number;
+        pageSize?: number;
+        unit?: string;
+        batch_no?: string;
+      }
     >({
       query: (params = {}) => {
         const queryParams = new URLSearchParams();
         queryParams.append("pageNumber", String(params.pageNumber ?? 1));
         queryParams.append("page_size", String(params.pageSize ?? 10));
-        queryParams.append("unit", params.unit ?? "");
+        if (params.unit) queryParams.append("unit", params.unit);
+        if (params.batch_no) queryParams.append("batch_no", params.batch_no);
         const url = `/pharmacy/medicines/?${queryParams.toString()}`;
-        return {
-          url,
-          method: "GET",
-        };
+        return { url, method: "GET" };
       },
     }),
-    getMedicineByCode: builder.query<Medicine, string>({
-      query: (code_no) => ({
-        url: `/pharmacy/medicines/${code_no}/`,
+
+    getMedicineById: builder.query<GetMedicine, string>({
+      query: (id) => ({
+        url: `/pharmacy/medicines/${id}/`,
         method: "GET",
       }),
     }),
-    createMedicine: builder.mutation<Medicine, Partial<Medicine>>({
+
+    createMedicine: builder.mutation<GetMedicine, MedicinePayload>({
       query: (body) => ({
         url: "/pharmacy/medicines/",
         method: "POST",
         body,
       }),
     }),
-    updateMedicine: builder.mutation<Medicine, Partial<Medicine>>({
-      query: ({ id, ...rest }) => ({
+
+    updateMedicine: builder.mutation<
+      GetMedicine,
+      { id: string } & Partial<MedicinePayload>
+    >({
+      query: ({ id, ...body }) => ({
         url: `/pharmacy/medicines/${id}/`,
         method: "PUT",
-        body: rest,
+        body,
       }),
     }),
+
     deleteMedicine: builder.mutation<void, string>({
       query: (id) => ({
         url: `/pharmacy/medicines/${id}/`,
@@ -152,8 +152,8 @@ export const medicineApi = createApi({
 
 export const {
   useGetMedicinesQuery,
-  useGetMedicineByCodeQuery,
+  useGetMedicineByIdQuery,
   useCreateMedicineMutation,
   useUpdateMedicineMutation,
   useDeleteMedicineMutation,
-} = medicineApi as typeof medicineApi;
+} = medicineApi;

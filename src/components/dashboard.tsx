@@ -20,15 +20,16 @@ import {
   User,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
 import { useGetOverviewQuery } from "@/store/dashboardApi";
 import type { OverviewData } from "@/lib/types";
+import { useWhoamiQuery } from "@/store/userApi";
 
 export function Dashboard() {
   // const [user, setUser] = useState<DecodedToken | null>(null);
   const { data: apiData, isLoading, error } = useGetOverviewQuery();
   
-  const user: any = jwtDecode(localStorage.getItem("access_token") || "");
+  // const user: any = jwtDecode(localStorage.getItem("access_token") || "");
+  const {data:user} = useWhoamiQuery();
   const overviewData: OverviewData | null =
     apiData ||
     (error
@@ -135,7 +136,7 @@ export function Dashboard() {
           </p>
         </div>
 
-        <div className="grid grid-cols-3 lg:grid-cols-6 gap-3 mb-10">
+        <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-10">
           <Card className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg hover:shadow-xl transition-shadow cursor-default">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-3 pt-3">
               <CardTitle className="text-xs font-semibold">
@@ -305,24 +306,28 @@ export function Dashboard() {
           </Link>
 
           {user?.role === "admin" && (
-            <Link to="/users">
-              <Card className="cursor-pointer hover:shadow-xl transition-all border-2 border-transparent hover:border-primary h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-3 text-foreground">
-                    <Users className="h-6 w-6 text-primary" />
-                    Manage Users
-                  </CardTitle>
-                  <CardDescription className="text-muted-foreground">
-                    Add, edit, and manage system users
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Button className="w-full" size="lg">
-                    Manage Users
-                  </Button>
-                </CardContent>
-              </Card>
-            </Link>
+            <>
+              <Link to="/users">
+                <Card className="cursor-pointer hover:shadow-xl transition-all border-2 border-transparent hover:border-primary h-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3 text-foreground">
+                      <Users className="h-6 w-6 text-primary" />
+                      Manage Users
+                    </CardTitle>
+                    <CardDescription className="text-muted-foreground">
+                      Add, edit, and manage system users
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button className="w-full" size="lg">
+                      Manage Users
+                    </Button>
+                  </CardContent>
+                </Card>
+              </Link>
+
+          
+            </>
           )}
         </div>
 
@@ -409,7 +414,7 @@ export function Dashboard() {
           </Card>
         </div>
 
-        {user.role === "admin" && (
+        {user?.role === "admin" && (
           <Card className="shadow-lg bg-gradient-to-r from-primary/10 to-secondary/10">
             <CardHeader>
               <CardTitle className="text-xl font-bold text-foreground">
