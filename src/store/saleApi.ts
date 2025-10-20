@@ -76,6 +76,8 @@ export const saleApi = createApi({
           medicine: string;
           quantity: number;
           price: number;
+          sale_type:string
+
         }[];
       }
     >({
@@ -140,4 +142,5 @@ export const {
   useCreateSaleItemMutation,
   useUpdateSaleMutation,
   useDeleteSaleMutation,
+  useLazyGetSaleByIdQuery,
 } = saleApi;

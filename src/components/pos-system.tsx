@@ -1,5 +1,6 @@
+"use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import type { GetMedicine } from "@/store/medicineApi";
@@ -21,14 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-// import {
-//   Dialog,
-//   DialogContent,
-//   DialogDescription,
-//   DialogFooter,
-//   DialogHeader,
-//   DialogTitle,
-// } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import {
   Search,
@@ -46,16 +39,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  useGetMedicinesQuery,
-  type MedicineUnit,
-} from "@/store/medicineApi";
-import {
-  useGetUnitsQuery,
-} from "@/store/unitApi";
-import {
-  useCreateSaleMutation,
-} from "@/store/saleApi";
+import { useGetMedicinesQuery, type MedicineUnit } from "@/store/medicineApi";
+import { useGetUnitsQuery } from "@/store/unitApi";
+import { useCreateSaleMutation } from "@/store/saleApi";
 import { toast } from "sonner";
 import { useQueryParamsState } from "@/hooks/useQueryParamsState";
 import { Pagination } from "@/components/ui/pagination";
@@ -65,6 +51,7 @@ interface CartItem {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  sale_type: "carton" | "unit";
 }
 
 export function POSSystem() {
@@ -77,23 +64,26 @@ export function POSSystem() {
     setItemsPerPage,
     batchNo,
     setBatchNo,
+    searchValue,
+    setSearchValue,
+    setUnit,
+    unit,
   } = useQueryParamsState({
     defaultBatchNo: "",
   });
 
-  const { data: medicines ,refetch} = useGetMedicinesQuery({
+  const { data: medicines, refetch } = useGetMedicinesQuery({
     pageNumber: currentPage,
     pageSize: itemsPerPage,
     batch_no: batchNo,
+    search: searchValue,
+    unit: unit !== "all" ? unit : undefined,
   });
   const { data: units } = useGetUnitsQuery({
     pageNumber: 1,
     pageSize: 1000,
   });
   const [createSale] = useCreateSaleMutation();
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [selectedUnitType, setSelectedUnitType] = useState<string>("all");
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const unitTypeOptions: { value: MedicineUnit; label: string }[] = [
@@ -114,7 +104,7 @@ export function POSSystem() {
     { value: "Of30", label: "Of 30" },
     { value: "Suppository", label: "Suppository" },
     { value: "Pcs", label: "Pcs" },
-    {value:"Pk", label:"Pk"}
+    { value: "Pk", label: "Pk" },
   ];
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -123,41 +113,33 @@ export function POSSystem() {
   const [fno, setFno] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [discount, setDiscount] = useState(0);
-  // const [showReceipt, setShowReceipt] = useState(false);
-  // const [lastSale, setLastSale] = useState<Sale | null>(null);
-  // const [lastSaleItems, setLastSaleItems] = useState<SaleItem[]>([]);
-
-  const filteredMedicines = useMemo(() => {
-    return (medicines?.results || []).filter((medicine) => {
-      const matchesSearch =
-        medicine.brand_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        medicine.item_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        medicine.batch_no.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory =
-        selectedCategory === "all" || medicine.department.id === selectedCategory;
-      const matchesUnitType =
-        selectedUnitType === "all" || medicine.unit === selectedUnitType;
-      const inStock = medicine.stock > 0;
-      return matchesSearch && matchesCategory && matchesUnitType && inStock;
-    });
-  }, [medicines, searchTerm, selectedCategory, selectedUnitType]);
 
   const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
   const discountAmount = (subtotal * discount) / 100;
   const total = subtotal - discountAmount;
 
-  const addToCart = (medicine: GetMedicine) => {
-    const existingItem = cart.find((item) => item.medicine.id === medicine.id);
+  const addToCart = (
+    medicine: GetMedicine,
+    saleType: "carton" | "unit" = "unit"
+  ) => {
+    const existingItem = cart.find(
+      (item) => item.medicine.id === medicine.id && item.sale_type === saleType
+    );
+
+    const unitPrice =
+      saleType === "carton"
+        ? Number.parseFloat(medicine.price) * (medicine.units_per_carton || 1)
+        : Number.parseFloat(medicine.price);
 
     if (existingItem) {
       if (existingItem.quantity < medicine.stock) {
         setCart((prev) =>
           prev.map((item) =>
-            item.medicine.id === medicine.id
+            item.medicine.id === medicine.id && item.sale_type === saleType
               ? {
                   ...item,
                   quantity: item.quantity + 1,
-                  totalPrice: (item.quantity + 1) * item.unitPrice,
+                  totalPrice: (item.quantity + 1) * unitPrice,
                 }
               : item
           )
@@ -169,16 +151,21 @@ export function POSSystem() {
         {
           medicine,
           quantity: 1,
-          unitPrice: parseFloat(medicine.price),
-          totalPrice: parseFloat(medicine.price),
+          unitPrice: unitPrice,
+          totalPrice: unitPrice,
+          sale_type: saleType,
         },
       ]);
     }
   };
 
-  const updateQuantity = (medicineId: string, newQuantity: number) => {
+  const updateQuantity = (
+    medicineId: string,
+    newQuantity: number,
+    saleType: "carton" | "unit"
+  ) => {
     if (newQuantity <= 0) {
-      removeFromCart(medicineId);
+      removeFromCart(medicineId, saleType);
       return;
     }
 
@@ -187,7 +174,7 @@ export function POSSystem() {
 
     setCart((prev) =>
       prev.map((item) =>
-        item.medicine.id === medicineId
+        item.medicine.id === medicineId && item.sale_type === saleType
           ? {
               ...item,
               quantity: newQuantity,
@@ -198,8 +185,13 @@ export function POSSystem() {
     );
   };
 
-  const removeFromCart = (medicineId: string) => {
-    setCart((prev) => prev.filter((item) => item.medicine.id !== medicineId));
+  const removeFromCart = (medicineId: string, saleType: "carton" | "unit") => {
+    setCart((prev) =>
+      prev.filter(
+        (item) =>
+          !(item.medicine.id === medicineId && item.sale_type === saleType)
+      )
+    );
   };
 
   const clearCart = () => {
@@ -215,7 +207,7 @@ export function POSSystem() {
 
   const processSale = async () => {
     if (cart.length === 0) return;
-   
+
     const salePayload = {
       customer_name: customerName || "",
       customer_phone: customerPhone || "",
@@ -229,19 +221,25 @@ export function POSSystem() {
         medicine: item.medicine.id,
         quantity: item.quantity,
         price: item.unitPrice,
-        // total_price: item.totalPrice,
+        sale_type: item.sale_type,
       })),
     };
-console.log("salepayload", salePayload)
+    console.log("salepayload", salePayload);
     try {
       const createdSale = await createSale(salePayload).unwrap();
       toast.success(`${createdSale.items.length} items sold!`);
-      // Navigate to invoice with sale data
-      navigate("/invoice", { state: { sale: createdSale , ...(customerAddress && {address:customerAddress}), ...(vatRegno && {vatreg:vatRegno}), ...(fno && {fno:fno})} });
-      refetch()
+      navigate("/invoice", {
+        state: {
+          sale: createdSale,
+          ...(customerAddress && { address: customerAddress }),
+          ...(vatRegno && { vatreg: vatRegno }),
+          ...(fno && { fno: fno }),
+        },
+      });
+      refetch();
       clearCart();
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
   };
 
@@ -250,10 +248,6 @@ console.log("salepayload", salePayload)
       units?.results.find((cat) => cat.id === categoryId)?.name || "Unknown"
     );
   };
-
-  // const printReceipt = () => {
-  //   window.print();
-  // };
 
   return (
     <div className="min-h-screen bg-background">
@@ -302,8 +296,8 @@ console.log("salepayload", salePayload)
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input
                       placeholder="Search medicines..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      value={searchValue}
+                      onChange={(e) => setSearchValue(e.target.value)}
                       className="pl-10"
                     />
                   </div>
@@ -316,10 +310,7 @@ console.log("salepayload", salePayload)
                       className="pl-10"
                     />
                   </div>
-                  <Select
-                    value={selectedCategory}
-                    onValueChange={setSelectedCategory}
-                  >
+                  {/* <Select value={unit} onValueChange={setUnit}>
                     <SelectTrigger className="w-full sm:w-48">
                       <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
@@ -331,19 +322,16 @@ console.log("salepayload", salePayload)
                         </SelectItem>
                       ))}
                     </SelectContent>
-                  </Select>
-                  <Select
-                    value={selectedUnitType}
-                    onValueChange={setSelectedUnitType}
-                  >
+                  </Select> */}
+                  <Select value={unit} onValueChange={setUnit}>
                     <SelectTrigger className="w-full sm:w-48">
-                      <SelectValue placeholder="All Unit Types" />
+                      <SelectValue placeholder="All Units" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Unit Types</SelectItem>
-                      {unitTypeOptions.map((unitType) => (
-                        <SelectItem key={unitType.value} value={unitType.value}>
-                          {unitType.label}
+                      <SelectItem value="all">All Units</SelectItem>
+                      {unitTypeOptions.map((category) => (
+                        <SelectItem key={category.value} value={category.value}>
+                          {category.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -352,7 +340,11 @@ console.log("salepayload", salePayload)
 
                 {/* Medicine Table */}
                 <div className="max-h-96 overflow-y-auto">
-                  {filteredMedicines.length === 0 ? (
+                  {medicines?.results.filter(
+                    (medicine) =>
+                      medicine.stock_carton > 0 ||
+                      medicine.total_stock_units > 0
+                  ).length === 0 ? (
                     <p className="text-muted-foreground text-center py-4">
                       No medicines found
                     </p>
@@ -366,34 +358,63 @@ console.log("salepayload", salePayload)
                             <TableHead>Department</TableHead>
                             <TableHead>Unit Type</TableHead>
                             <TableHead>Price</TableHead>
-                            <TableHead>Cartons</TableHead>
-                            <TableHead>sock In Units</TableHead>
-                            <TableHead>Add To Cart</TableHead>
+                              <TableHead>Cartons</TableHead>
+                              <TableHead>Units/carton</TableHead>
+                            <TableHead>Stock In Units</TableHead>
+                            <TableHead>Add Carton</TableHead>
+                            <TableHead>Add Unit</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {filteredMedicines.map((medicine) => (
-                            <TableRow
-                              key={medicine.id}
-                              className="cursor-pointer hover:bg-muted/50"
-                              onClick={() => addToCart(medicine)}
-                            >
-                              <TableCell>{medicine.item_name}</TableCell>
-                              <TableCell>{medicine.batch_no}</TableCell>
-                              <TableCell>
-                                {getCategoryName(medicine.department?.id)}
-                              </TableCell>
-                              <TableCell>{medicine.unit || "N/A"}</TableCell>
-                              <TableCell>Birr {medicine.price}</TableCell>
-                              <TableCell>{medicine.stock_in_carton}</TableCell>
-                              <TableCell>{medicine.stock_in_unit}</TableCell>
-                              <TableCell>
-                                <Button size="sm" variant="ghost">
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          ))}
+                          {medicines?.results
+                            .filter(
+                              (medicine) =>
+                                medicine.stock_carton > 0 ||
+                                medicine.total_stock_units > 0
+                            )
+                            .map((medicine) => (
+                              <TableRow
+                                key={medicine.id}
+                                className="cursor-pointer hover:bg-muted/50"
+                              >
+                                <TableCell>{medicine.item_name}</TableCell>
+                                <TableCell>{medicine.batch_no}</TableCell>
+                                <TableCell>
+                                  {getCategoryName(medicine.department?.id)}
+                                </TableCell>
+                                <TableCell>{medicine.unit || "N/A"}</TableCell>
+                                <TableCell>Birr {medicine.price}</TableCell>
+                                <TableCell>{medicine.stock_carton}</TableCell>
+                                <TableCell>{medicine.units_per_carton}</TableCell>
+                                <TableCell>
+                                  {medicine.total_stock_units}
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    title="Add as carton"
+                                    disabled={medicine.stock_carton === 0}
+                                    onClick={() =>
+                                      addToCart(medicine, "carton")
+                                    }
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                                <TableCell>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    title="Add as unit"
+                                    disabled={medicine.total_stock_units === 0}
+                                    onClick={() => addToCart(medicine, "unit")}
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))}
                         </TableBody>
                       </Table>
                       <Pagination
@@ -430,6 +451,7 @@ console.log("salepayload", salePayload)
                     <TableHeader>
                       <TableRow>
                         <TableHead>Name</TableHead>
+                        <TableHead>Type</TableHead>
                         <TableHead>Price</TableHead>
                         <TableHead>Quantity</TableHead>
                         <TableHead>Total</TableHead>
@@ -438,8 +460,19 @@ console.log("salepayload", salePayload)
                     </TableHeader>
                     <TableBody>
                       {cart.map((item) => (
-                        <TableRow key={item.medicine.id}>
+                        <TableRow key={`${item.medicine.id}-${item.sale_type}`}>
                           <TableCell>{item.medicine.brand_name}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                item.sale_type === "carton"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {item.sale_type}
+                            </Badge>
+                          </TableCell>
                           <TableCell>
                             Birr {item.unitPrice.toFixed(2)}
                           </TableCell>
@@ -451,7 +484,8 @@ console.log("salepayload", salePayload)
                                 onClick={() =>
                                   updateQuantity(
                                     item.medicine.id,
-                                    item.quantity - 1
+                                    item.quantity - 1,
+                                    item.sale_type
                                   )
                                 }
                               >
@@ -465,7 +499,8 @@ console.log("salepayload", salePayload)
                                 onChange={(e) =>
                                   updateQuantity(
                                     item.medicine.id,
-                                    parseInt(e.target.value) || 1
+                                    Number.parseInt(e.target.value) || 1,
+                                    item.sale_type
                                   )
                                 }
                                 className="w-16 text-center text-sm"
@@ -476,7 +511,8 @@ console.log("salepayload", salePayload)
                                 onClick={() =>
                                   updateQuantity(
                                     item.medicine.id,
-                                    item.quantity + 1
+                                    item.quantity + 1,
+                                    item.sale_type
                                   )
                                 }
                               >
@@ -491,7 +527,9 @@ console.log("salepayload", salePayload)
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => removeFromCart(item.medicine.id)}
+                              onClick={() =>
+                                removeFromCart(item.medicine.id, item.sale_type)
+                              }
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>
@@ -640,8 +678,6 @@ console.log("salepayload", salePayload)
           </div>
         </div>
       </main>
-
-      {/* Receipt Dialog */}
     </div>
   );
 }

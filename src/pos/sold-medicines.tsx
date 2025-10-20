@@ -107,7 +107,7 @@ export default function SalesDetailPage() {
     pageNumber: 1,
     pageSize: 1000,
   });
-console.log(salesResponse)
+console.log("sold med", salesResponse)
   useEffect(() => {
     refetch();
   }, [itemsPerPage, refetch]);
@@ -144,6 +144,10 @@ console.log(salesResponse)
       (sale.items?.reduce((itemSum, item) => itemSum + item.quantity, 0) || 0)
     );
   }, 0);
+  const totalDiscount = filteredSales.reduce(
+    (sum, sale) => sum + Number.parseFloat(sale.discounted_amount || "0"),
+    0
+  );
 
   const handleFilterChange = (newFilterType: FilterType) => {
     setFilterType(newFilterType);
@@ -154,9 +158,9 @@ console.log(salesResponse)
     setActiveExpandedId(null);
   };
 
-const toggleExpanded = (saleId: string) => {
-  setActiveExpandedId((prev) => (prev === saleId ? null : saleId));
-};
+  const toggleExpanded = (saleId: string) => {
+    setActiveExpandedId((prev) => (prev === saleId ? null : saleId));
+  };
 
   if (isLoading) {
     return (
@@ -284,7 +288,7 @@ const toggleExpanded = (saleId: string) => {
         </Card>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Card className="bg-card border-border">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -294,7 +298,7 @@ const toggleExpanded = (saleId: string) => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-foreground/90">
-               Birr &nbsp;
+                Birr{" "}
                 {totalRevenue.toLocaleString("en-US", {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
@@ -313,6 +317,24 @@ const toggleExpanded = (saleId: string) => {
             <CardContent>
               <div className="text-3xl font-bold text-foreground/90">
                 {totalItems.toLocaleString()}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card border-border">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-accent" />
+                Total Discount
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-foreground/90">
+                Birr{" "}
+                {totalDiscount.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </div>
             </CardContent>
           </Card>
@@ -425,9 +447,11 @@ function SalesCard({
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteSale] = useDeleteSaleMutation();
   const { user } = useAuth();
-  const isAdmin = user?.role === "admin" ;
+  const isAdmin = user?.role === "admin";
 
   const totalValue = Number.parseFloat(sale.total_amount || "0");
+  const basePrice = Number.parseFloat(sale.base_price || "0");
+  const discountAmount = Number.parseFloat(sale.discounted_amount || "0");
   const totalItems =
     sale.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
   const saleDate = new Date(sale.sale_date);
@@ -522,6 +546,33 @@ function SalesCard({
             </span>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-background rounded-lg border border-border">
+              <p className="text-xs text-muted-foreground mb-1 font-semibold">
+                Base Price
+              </p>
+              <p className="font-bold text-foreground/90">
+                Birr{" "}
+                {basePrice.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+            </div>
+            <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+              <p className="text-xs text-destructive mb-1 font-semibold">
+                Discount
+              </p>
+              <p className="font-bold text-destructive">
+                Birr{" "}
+                {discountAmount.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </p>
+            </div>
+          </div>
+
           {/* Sold by */}
           <div className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-background/80 transition-colors">
             <div className="p-2 bg-primary/15 rounded-lg">
@@ -536,6 +587,22 @@ function SalesCard({
               </span>
             </div>
           </div>
+
+          {sale.discounted_by && sale.discounted_by_username && (
+            <div className="flex items-center gap-3 p-3 bg-background rounded-lg hover:bg-background/80 transition-colors">
+              <div className="p-2 bg-accent/15 rounded-lg">
+                <User className="w-4 h-4 text-accent" />
+              </div>
+              <div className="flex-1">
+                <span className="text-xs text-muted-foreground block">
+                  Discount Applied by
+                </span>
+                <span className="font-semibold text-foreground/90">
+                  {sale.discounted_by_username || sale.discounted_by}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Stock Sold */}
           <div className="flex items-center justify-between p-3 bg-background rounded-lg hover:bg-background/80 transition-colors">
@@ -596,19 +663,6 @@ function SalesCard({
             </div>
           )}
 
-          {/* Discount */}
-          {sale.discount_percentage &&
-            Number.parseFloat(sale.discount_percentage) > 0 && (
-              <div className="p-3 bg-destructive/10 rounded-lg border border-destructive/20">
-                <p className="text-xs text-destructive mb-1 font-semibold">
-                  Discount Applied
-                </p>
-                <p className="font-bold text-destructive">
-                  {sale.discount_percentage}% off
-                </p>
-              </div>
-            )}
-
           {/* Items */}
           {sale.items && sale.items.length > 0 && (
             <div className="p-4 bg-background rounded-lg border border-border">
@@ -621,10 +675,27 @@ function SalesCard({
                     key={item.id}
                     className="text-sm text-foreground/90 flex justify-between items-center p-2 bg-background rounded hover:bg-accent/10 transition-colors"
                   >
-                    <span className="font-medium">{item.medicine_name}</span>
-                    <span className="text-muted-foreground font-semibold">
-                      x{item.quantity}
-                    </span>
+                    <div>
+                      <span className="font-medium">{item.medicine}</span>
+                      <p className="text-xs text-muted-foreground">
+                        Batch: {item.batch_no} | Expires: {item.expire_date}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-muted-foreground font-semibold block">
+                        x{item.quantity}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        Birr{" "}
+                        {Number.parseFloat(item.total_price).toLocaleString(
+                          "en-US",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -673,7 +744,7 @@ function SalesCard({
             className="gap-2 shadow-md hover:shadow-lg transition-all"
           >
             <Trash2 className="w-4 h-4" />
-            {isDeleting ? "Deleting..." : ""}
+            {isDeleting ? "Deleting..." : "Delete"}
           </Button>
         </div>
       )}

@@ -13,6 +13,8 @@ import InvoicePage from './components/invoice';
 import NetworkStatus from './components/NetworkStatus';
 import SalesDetailPage from './pos/sold-medicines';
 import { FloatingSettingsWidget } from './components/settings';
+import Invoice from './components/Invoice2';
+import InvoiceDisplay from './components/Invoice2';
 
 function App() {
 
@@ -29,10 +31,10 @@ function App() {
           <Route path="/medicines" element={<MedicineManagement />} />
           <Route path="/reports" element={<AnalyticsDashboard />} />
           <Route path="/users" element={<UserManagement />} />
-          <Route path="/invoice" element={<InvoicePage />} />
+          <Route path="/invoice" element={<InvoiceDisplay />} />
         </Route>
       </Routes>
-      <FloatingSettingsWidget/>
+      <FloatingSettingsWidget />
     </>
   );
 }

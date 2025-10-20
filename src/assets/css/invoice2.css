@@ -1,0 +1,161 @@
+/* Invoice Page Styles */
+
+.invoice-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+
+.invoice-container {
+  background-color: white;
+  padding: 40px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  flex: 1;
+}
+
+.invoice-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #333;
+  padding-bottom: 20px;
+}
+
+.pharmacy-name-amharic {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.pharmacy-name-english {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.phone-number {
+  font-size: 12px;
+  color: #666;
+}
+
+.phone-number span {
+  margin-right: 5px;
+}
+
+.party {
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 11px;
+}
+
+.invoice-table thead {
+  background-color: #f0f0f0;
+  border-bottom: 2px solid #333;
+}
+
+.invoice-table th {
+  padding: 10px;
+  text-align: left;
+  font-weight: bold;
+  border: 1px solid #ddd;
+}
+
+.invoice-table td {
+  padding: 8px;
+  border: 1px solid #ddd;
+}
+
+.invoice-table input {
+  width: 100%;
+  border: none;
+  padding: 4px;
+  font-size: 11px;
+}
+
+.description-input {
+  min-width: 200px;
+}
+
+.totals-section {
+  margin-top: 20px;
+}
+
+.totals-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.totals-table tr {
+  border-bottom: 1px solid #ddd;
+}
+
+.label-cell {
+  padding: 8px;
+  font-weight: bold;
+  text-align: right;
+  width: 50%;
+}
+
+.value-cell {
+  padding: 8px;
+  text-align: right;
+  width: 50%;
+}
+
+.value-cell input {
+  width: 100%;
+  border: none;
+  padding: 4px;
+  text-align: right;
+  font-size: 11px;
+}
+
+.footer-note {
+  margin-top: 40px;
+  text-align: center;
+  font-size: 10px;
+  font-weight: bold;
+  color: #666;
+  border-top: 1px solid #ddd;
+  padding-top: 20px;
+}
+
+.invoice-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  padding: 16px;
+  flex-wrap: wrap;
+}
+
+@media print {
+  .invoice-page {
+    background-color: white;
+    padding: 0;
+  }
+
+  .invoice-container {
+    box-shadow: none;
+    padding: 0;
+    margin-bottom: 0;
+  }
+
+  .invoice-actions {
+    display: none;
+  }
+}

@@ -81,6 +81,7 @@ export interface Unit {
   createdAt: Date;
 }
 
+
 export interface Sale {
   id: string;
   customer_name?: string;
@@ -107,10 +108,12 @@ export interface Sale {
 export interface SaleItem {
   id: string;
   medicine: string;
+  batch_no: string;
   medicine_name: string;
   quantity: number;
   price: string;
-  total_price: number;
+  total_price: string;
+  expire_date: string;
 }
 
 export interface DashboardStats {

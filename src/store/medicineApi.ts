@@ -56,7 +56,8 @@ export type GetMedicine = {
   stock: number;
   stock_in_unit: number;
   stock_carton: number;
-  units_per_carton:number;
+  units_per_carton: number;
+  total_stock_units: number;
   low_stock_threshold: number;
   unit: MedicineUnit;
   unit_display: string;
@@ -105,6 +106,7 @@ export const medicineApi = createApi({
         pageSize?: number;
         unit?: string;
         batch_no?: string;
+        search?: string;
       }
     >({
       query: (params = {}) => {
@@ -113,6 +115,7 @@ export const medicineApi = createApi({
         queryParams.append("page_size", String(params.pageSize ?? 10));
         if (params.unit) queryParams.append("unit", params.unit);
         if (params.batch_no) queryParams.append("batch_no", params.batch_no);
+        if(params.search) queryParams.append("search", params.search);
         const url = `/pharmacy/medicines/?${queryParams.toString()}`;
         return { url, method: "GET" };
       },
