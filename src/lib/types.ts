@@ -102,6 +102,8 @@ export interface Sale {
   sold_by_name: string;
   sold_by_username?: string;
 
+  voucher_number: string;
+  TIN_number?: string;
   items: SaleItem[];
 }
 
@@ -114,6 +116,8 @@ export interface SaleItem {
   price: string;
   total_price: string;
   expire_date: string;
+  code_no: string;
+  unit_type: string;
 }
 
 export interface DashboardStats {

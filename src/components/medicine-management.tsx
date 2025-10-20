@@ -131,6 +131,7 @@ export function MedicineManagement() {
     units_per_carton:"",
     expire_date: "",
     unit: "Strip" as MedicineUnit,
+    TIN_number: "",
   });
   // Apis
   const { data: Units, refetch } = useGetUnitsQuery(
@@ -213,7 +214,7 @@ const calculateTotalPieces = () => {
 };
 
   const calculateEstimatedTotalPrice = () => {
-    calculateTotalPieces().totalPieces
+    const totalPieces = calculateTotalPieces().totalPieces;
     const piecePrice = Number.parseFloat(formData.piece_price) || 0;
     return totalPieces * piecePrice;
   };
@@ -351,6 +352,7 @@ console.log(expiryDays)
       units_per_carton:"",
       expire_date: formData.expire_date || "",
       unit: formData.unit || "Strip" as MedicineUnit,
+      TIN_number: "",
     });
     setEditingMedicine(null);
   };
@@ -374,6 +376,7 @@ console.log(expiryDays)
       stock: "",
       expire_date: "",
       unit: "Strip" as MedicineUnit,
+      TIN_number: "",
     });
   };
   const resetUnitForm = () => {
@@ -499,6 +502,7 @@ const { cartons, totalPieces } = calculateTotalPieces();
           company_name: formData.company_name
         }
         ),
+        TIN_number: formData.TIN_number,
         units_per_carton:Number.parseInt(formData.units_per_carton),
         stock_in_unit: Number.parseInt(formData.stock_in_unit),
         stock_carton: Number.parseInt(formData.stock_carton) || cartons,
@@ -538,6 +542,7 @@ const { cartons, totalPieces } = calculateTotalPieces();
       units_per_carton: medicine.units_per_carton?.toString() || "",
       stock_carton: medicine.stock_carton?.toString() || "",
       stock_in_unit: medicine.stock_in_unit?.toString() || "",
+      TIN_number: "",
     });
 
     setIsAddSheetOpen(true);
@@ -601,7 +606,6 @@ const { cartons, totalPieces } = calculateTotalPieces();
     setSelectedUnitType(value === "all" ? "" : value);
     setUnit(value === "all" ? "" : value);
   };
-  const { totalPieces } = calculateTotalPieces();
   
   return (
     <div className="min-h-screen bg-gradient-to-r from-background via-card to-background dark:from-background dark:via-card dark:to-background">
@@ -721,6 +725,7 @@ const { cartons, totalPieces } = calculateTotalPieces();
                                   className="border-2 border-primary/30 focus:border-primary"
                                 />
                               </div>
+                    
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">

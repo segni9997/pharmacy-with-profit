@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useMemo, useEffect } from "react";
 import {
@@ -29,12 +28,14 @@ import {
   Trash2,
   Calendar,
   TrendingUp,
+  Receipt,
 } from "lucide-react";
 import type { Sale } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { useQueryParamsState } from "@/hooks/useQueryParamsState";
 import { toast } from "sonner";
 import { useDeleteSaleMutation, useGetSalesQuery } from "@/store/saleApi";
+import { useNavigate } from "react-router-dom";
 
 type FilterType = "date" | "week" | "month";
 
@@ -95,7 +96,7 @@ export default function SalesDetailPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [activeExpandedId, setActiveExpandedId] = useState<string | null>(null);
 
-  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage } =
+  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, voucherNumber, setVoucherNumber } =
     useQueryParamsState();
 
   const {
@@ -104,13 +105,14 @@ export default function SalesDetailPage() {
     error,
     refetch,
   } = useGetSalesQuery({
-    pageNumber: 1,
-    pageSize: 1000,
+    pageNumber: currentPage,
+    pageSize: itemsPerPage,
+    voucher_number: voucherNumber,
   });
 console.log("sold med", salesResponse)
   useEffect(() => {
     refetch();
-  }, [itemsPerPage, refetch]);
+  }, [itemsPerPage, refetch, voucherNumber]);
 
   const selectedValue =
     filterType === "date"
@@ -199,7 +201,7 @@ console.log("sold med", salesResponse)
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5 p-6 md:p-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-8xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-foreground/90 mb-2">
@@ -223,6 +225,15 @@ console.log("sold med", salesResponse)
           </CardHeader>
           <CardContent>
             <div className="flex flex-col sm:flex-row gap-4">
+              <div className="space-y-2">
+                <Label>Voucher Number</Label>
+                <Input
+                  type="text"
+                  placeholder="Enter voucher number"
+                  value={voucherNumber}
+                  onChange={(e) => setVoucherNumber(e.target.value)}
+                />
+              </div>
               <div className="space-y-2">
                 <Label>Filter Type</Label>
                 <Select
@@ -352,7 +363,7 @@ console.log("sold med", salesResponse)
           </Card>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 items-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 items-start">
               {paginatedSales.map((sale) => (
                 <SalesCard
                   key={sale.id}
@@ -448,7 +459,7 @@ function SalesCard({
   const [deleteSale] = useDeleteSaleMutation();
   const { user } = useAuth();
   const isAdmin = user?.role === "admin";
-
+  const navigate = useNavigate();
   const totalValue = Number.parseFloat(sale.total_amount || "0");
   const basePrice = Number.parseFloat(sale.base_price || "0");
   const discountAmount = Number.parseFloat(sale.discounted_amount || "0");
@@ -497,7 +508,14 @@ function SalesCard({
       </div>
     ));
   };
-
+const handleInvoice = (sale: Sale) => {
+  navigate("/invoice", {
+    state: {
+      sale,
+      ...(sale.id && { saleId: sale.id }),
+    },
+  });
+};
   return (
     <Card className="bg-background/70 backdrop-blur-sm hover:shadow-2xl hover:scale-105 transition-all duration-300 h-fit overflow-hidden group pt-0">
       <CardHeader className="pb-4 bg-gradient-to-br from-background via-background to-background/90 relative overflow-hidden pt-2">
@@ -506,7 +524,7 @@ function SalesCard({
           <div className="flex-1">
             <div className="text-xs font-bold text-background-foreground uppercase tracking-wider mb-2 flex items-center gap-2">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-              Naty Pharmacy
+              {sale.voucher_number}
             </div>
             <CardTitle className="text-lg text-foreground/50 font-bold">
               {totalItems} Items Sold
@@ -687,13 +705,10 @@ function SalesCard({
                       </span>
                       <span className="text-xs text-muted-foreground">
                         Birr{" "}
-                        {Number.parseFloat(item.total_price).toLocaleString(
-                          "en-US",
-                          {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          }
-                        )}
+                       { (Number.parseFloat(item.price || "0") * item.quantity).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </span>
                     </div>
                   </div>
@@ -732,10 +747,17 @@ function SalesCard({
           </div>
         </CardContent>
       )}
-
-      {/* Delete Button (Admin Only) */}
-      {isAdmin && (
-        <div className="px-6 py-4 border-t border-border flex justify-end">
+      <div className="px-6 py-4 border-t border-border flex flex-row gap-4 justify-end">
+        <Button
+          onClick={() => handleInvoice(sale)}
+          variant="outline"
+          size="sm"
+          className="gap-2 shadow-md hover:shadow-lg transition-all"
+        >
+          <Receipt className="w-4 h-4" />
+          Invoice
+        </Button>
+        {isAdmin && (
           <Button
             onClick={handleDelete}
             disabled={isDeleting}
@@ -746,8 +768,9 @@ function SalesCard({
             <Trash2 className="w-4 h-4" />
             {isDeleting ? "Deleting..." : "Delete"}
           </Button>
-        </div>
-      )}
+        )}
+      </div>
     </Card>
   );
 }
+ 

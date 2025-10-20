@@ -346,7 +346,7 @@ export function Dashboard() {
                   No sales data available.
                 </p>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-4 max-h-96 overflow-y-auto">
                   {overviewData.top_selling.map((medicine, index) => (
                     <div
                       key={index}
@@ -389,7 +389,7 @@ export function Dashboard() {
                   No department data available.
                 </p>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-4 max-h-96 overflow-y-auto">
                   {overviewData.departments.map((dept, index) => (
                     <div
                       key={index}

@@ -68,14 +68,14 @@
 }
 
 .invoice-table th {
-  padding: 10px;
+  padding: 5px 10px 5px 10px;
   text-align: left;
   font-weight: bold;
   border: 1px solid #ddd;
 }
 
 .invoice-table td {
-  padding: 8px;
+  padding: 5px 10px 5px 10px;
   border: 1px solid #ddd;
 }
 
@@ -83,7 +83,7 @@
   width: 100%;
   border: none;
   padding: 4px;
-  font-size: 11px;
+  font-size: 8px;
 }
 
 .description-input {
@@ -91,7 +91,7 @@
 }
 
 .totals-section {
-  margin-top: 20px;
+  margin-top: 0px;
 }
 
 .totals-table {

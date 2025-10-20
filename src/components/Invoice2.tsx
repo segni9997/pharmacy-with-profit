@@ -1,4 +1,3 @@
-"use client";
 
 import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -8,6 +7,8 @@ import { convertToWords } from "react-number-to-words";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Printer, Trash2 } from "lucide-react";
 import "../assets/css/invoice2.css"
+import { useWhoamiQuery } from "@/store/userApi";
+import type { Sale } from "@/lib/types";
 
 export default function InvoicePage() {
   const navigate = useNavigate();
@@ -25,9 +26,10 @@ export default function InvoicePage() {
     return text.replace(/dollars?/gi, "Birr").replace(/cents?/gi, "cents");
   };
 
-  const [date, setDate] = useState("");
-  const [fromTIN, setFromTIN] = useState("0024397833");
+  const [____, setDate] = useState("");
+  const [toTIN, settoTIN] = useState("0024397833");
   const [toPhone, setToPhone] = useState("");
+  const [saleDate, setSaleDate] = useState("");
   const [_, setToHouseNo] = useState("");
 
   const [items, setItems] = useState(
@@ -49,21 +51,25 @@ export default function InvoicePage() {
   const [amountInWords, setAmountInWords] = useState("");
   const [paymentMode, setPaymentMode] = useState("");
   const [preparedBy, setPreparedBy] = useState("");
-  const [cashierSign, setCashierSign] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
-  const [vatRegno, setVatRegno] = useState("");
+  const [___, setVatRegno] = useState("");
   const [__, setFno] = useState("");
+  const [voucherNo, setVoucherNo]= useState("")
 
   const location = useLocation();
 
-  const saleIdFromState = location.state?.saleId;
+  const saleIdFromState = location.state?.state?.id;
   const { data: saleDetail } = useGetSaleByIdQuery(saleIdFromState || "", {
     skip: !saleIdFromState,
   });
-console.log("saledetail", saleDetail)
+  console.log('Salefromdb', saleDetail)
+  const { data: user } = useWhoamiQuery();
+  const canEdit = user?.role === "admin";
   useEffect(() => {
-    const sale = location.state?.sale;
+    const sale:Sale = location.state?.sale;
+  console.log("saledetail", sale);
+
     const { address, vatreg, fno } = location.state || {};
     if (address) setCustomerAddress(address);
     if (vatreg) setVatRegno(vatreg);
@@ -73,14 +79,22 @@ console.log("saledetail", saleDetail)
       setToPhone(sale.customer_phone || "");
       setCustomerName(sale.customer_name || "");
       setPaymentMode(sale.payment_method || "");
+      setSaleDate(new Date(sale.sale_date).toUTCString());
+      settoTIN(sale.TIN_number || "N/A");
+      setVoucherNo(sale.voucher_number);
 
       const saleItems = sale.items.map((item: any, index: number) => ({
         id: index + 1,
-        description: item.medicine_name,
-        unit: "",
+        description: `${item.medicine} ${
+          item.batch_no ? `, ${item.batch_no}` : " "
+        } ${item.expire_date ? `, ${item.expire_date}` : ""}${
+          item.unit_type ? `, ${item.unit_type}` : ""
+        }`,
+        unit:item.code_no,
         qty: item.quantity.toString(),
         unitPrice: item.price.toString(),
-        totalPrice: item.total_price,
+        totalPrice:
+          item.total_price || item.quantity * Number.parseFloat(item.price),
       }));
 
       setItems(saleItems);
@@ -94,7 +108,7 @@ console.log("saledetail", saleDetail)
 
       const words = convertToBirrWords(totalAfterDiscount);
       setAmountInWords(words);
-      setPreparedBy(sale.discounted_by_username || "");
+      setPreparedBy(sale.sold_by_username || "");
     }
   }, [location.state]);
 
@@ -112,14 +126,14 @@ console.log("saledetail", saleDetail)
       const saleItems = saleDetail.items.map((item: any, index: number) => ({
         id: index + 1,
         description: item.medicine_name,
-        unit: "",
+        unit: item.code_no,
         qty: item.quantity.toString(),
         unitPrice: item.price.toString(),
         totalPrice: item.total_price.toString(),
       }));
-
+console.log("saleItems", saleItems)
       setItems(saleItems);
-
+    
       const subTotalValue = Number(
         (
           saleDetail?.items?.reduce(
@@ -210,7 +224,6 @@ console.log("saledetail", saleDetail)
       setGrandTotal("");
       setAmountInWords("");
       setPreparedBy("");
-      setCashierSign("");
     }
   };
 
@@ -233,8 +246,8 @@ console.log("saledetail", saleDetail)
             </div>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-4 mb-3">
-          <div className="flex flex-col">
+        <div className="flex flex-row justify-between gap-4 mb-3  p-1">
+          <div className="flex flex-col w-[40%] ">
             <div
               style={{
                 fontSize: "11px",
@@ -251,7 +264,7 @@ console.log("saledetail", saleDetail)
                 marginBottom: "10px",
               }}
             >
-              VAT: 
+              VAT:
             </div>
           </div>
           <div
@@ -261,18 +274,22 @@ console.log("saledetail", saleDetail)
               fontSize: "11px",
               lineHeight: "1.6",
             }}
-            className="flex flex-col justify-start items-start w-full"
+            className="flex flex-col justify-start items-start w-[60%]"
           >
             <div style={{ fontWeight: "bold", marginBottom: "5px" }}>
               NATNAEL WENDWOSEN ABERA
             </div>
-            <div>
-              Tel: 0982836752 <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                   0911952444
+            <div className="flex flex-row justify-between w-full mr-8 ">
+              <div className="w-1/2">
+                Tel: 0982836752 <br /> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                0911952444
+              </div>
+              <div className="w-1/2">
+                <div>Fax:</div>
+                <div>POBox: Web:</div>
+                <div>E-Mail:</div>
+              </div>
             </div>
-            <div>Fax:</div>
-            <div>POBox: Web:</div>
-            <div>E-Mail:</div>
           </div>
         </div>
         <div
@@ -286,40 +303,47 @@ console.log("saledetail", saleDetail)
           <div className="party">
             <div style={{ marginBottom: "10px" }} className="border p-1">
               <div style={{ fontSize: "11px" }}>
-                To:{saleDetail?.customer_name || "Walk-in Customer"}
+                To:
+                <strong>
+                  {saleDetail?.customer_name?.toUpperCase() ||
+                    customerName.toUpperCase() ||
+                    "Walk-in Customer"}
+                </strong>
               </div>
-              <div style={{ fontSize: "11px" }}>TIN No:{saleDetail?.customer_phone || "00000000"}</div>
-              <div style={{ fontSize: "11px" }}>Address:{saleDetail?.customer_address || "AA"}</div>
+              <div style={{ fontSize: "11px" }}>
+                phone No:{saleDetail?.customer_phone || toPhone || ""}
+              </div>
+              <div style={{ fontSize: "11px" }}>
+                TIN No:{saleDetail?.customer_phone || toTIN || ""}
+              </div>
+              <div style={{ fontSize: "11px" }}>
+                Address:
+                {saleDetail?.customer_address || customerAddress || "A.A"}
+              </div>
               <div style={{ fontSize: "11px" }}>Ref.</div>
             </div>
-          
-           
           </div>
 
           <div className="party border p-2">
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "10px",
-                fontSize: "11px",
-              }}
-            >
+            <div className="flex flex-col ">
               <div>
-                <div style={{ fontWeight: "bold" }}>Voucher No</div>
-                <div>CSV-0000042-25</div>
+                <div style={{ fontWeight: "bold" }}>
+                  Voucher No : &nbsp; {voucherNo || ""}
+                </div>
               </div>
               <div>
-                <div style={{ fontWeight: "bold" }}>Date</div>
-                <div>{date} 12:42 PM</div>
+                <div style={{ fontWeight: "bold" }}>
+                  Date :
+                  <strong className="text-[10px]">
+                    &nbsp; {saleDate.slice(0, 25)}{" "}
+                  </strong>
+                </div>
               </div>
               <div>
                 <div style={{ fontWeight: "bold" }}>Job</div>
-                <div></div>
               </div>
               <div>
                 <div style={{ fontWeight: "bold" }}>Store</div>
-                <div></div>
               </div>
             </div>
           </div>
@@ -330,30 +354,36 @@ console.log("saledetail", saleDetail)
             <tr>
               <th style={{ width: "40px" }}>SN</th>
               <th style={{ width: "80px" }}>Code</th>
-              <th style={{ width: "250px" }}>Description</th>
+              <th style={{ width: "150px" }}>Description</th>
               <th style={{ width: "60px" }}>Qty</th>
-              <th style={{ width: "80px" }}>U.Amount</th>
-              <th style={{ width: "80px" }}>Total</th>
+              <th style={{ width: "100px" }}>U.Amount</th>
+              <th style={{ width: "100px" }}>Total</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item, index) => (
-              <tr key={item.id}>
+              <tr key={item.id} className="text-[10px]">
                 <td>{item.id}</td>
                 <td>
                   <input
                     type="text"
                     value={item.unit}
+                    readOnly={!canEdit}
+                    disabled={!canEdit}
+                    className="max-w-[80px] text-[9px]"
                     onChange={(e) =>
                       handleItemChange(index, "unit", e.target.value)
                     }
                   />
                 </td>
+
                 <td>
                   <input
                     type="text"
                     className="description-input"
                     value={item.description}
+                    readOnly={!canEdit}
+                    disabled={!canEdit}
                     onChange={(e) =>
                       handleItemChange(index, "description", e.target.value)
                     }
@@ -365,6 +395,8 @@ console.log("saledetail", saleDetail)
                     inputMode="numeric"
                     pattern="[0-9]*"
                     value={item.qty}
+                    readOnly={!canEdit}
+                    disabled={!canEdit}
                     onChange={(e) =>
                       handleItemChange(index, "qty", e.target.value)
                     }
@@ -373,15 +405,22 @@ console.log("saledetail", saleDetail)
                 <td>
                   <input
                     type="number"
-                    step="0.01"
+                    step="0.5"
                     value={item.unitPrice}
+                    readOnly={!canEdit}
+                    disabled={!canEdit}
                     onChange={(e) =>
                       handleItemChange(index, "unitPrice", e.target.value)
                     }
                   />
                 </td>
                 <td>
-                  <input type="text" value={item.totalPrice} readOnly />
+                  <input
+                    type="text"
+                    value={item.totalPrice}
+                    readOnly={!canEdit}
+                    disabled={!canEdit}
+                  />
                 </td>
               </tr>
             ))}
@@ -392,14 +431,14 @@ console.log("saledetail", saleDetail)
           style={{
             display: "flex",
             justifyContent: "space-between",
-            marginTop: "20px",
+            marginTop: "5px",
           }}
         >
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: "11px", marginBottom: "10px" }}>
               <strong>Payment Method:</strong>{" "}
               <span style={{ textDecoration: "underline" }}>
-                Cash ({subTotal})
+                {paymentMode} ({subTotal})
               </span>
             </div>
             <div
@@ -419,58 +458,61 @@ console.log("saledetail", saleDetail)
                 <tr>
                   <td className="label-cell">Sub Total</td>
                   <td className="value-cell">
-                    <input type="text" value={subTotal} readOnly />
+                    <input
+                      type="text"
+                      value={subTotal}
+                      readOnly={!canEdit}
+                      disabled={!canEdit}
+                    />
                   </td>
                 </tr>
                 <tr>
                   <td className="label-cell">VAT(0%)</td>
                   <td className="value-cell">
-                    <input type="text" value={vat} readOnly />
+                    <input
+                      type="text"
+                      value={vat}
+                      readOnly={!canEdit}
+                      disabled={!canEdit}
+                    />
                   </td>
                 </tr>
                 <tr>
                   <td className="label-cell">Grand Total</td>
                   <td className="value-cell">
-                    <input type="text" value={grandTotal} readOnly />
+                    <input
+                      type="text"
+                      value={grandTotal}
+                      readOnly={!canEdit}
+                      disabled={!canEdit}
+                    />
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
-
-        <div
-          style={{
-            marginTop: "60px",
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "40px",
-            fontSize: "11px",
-          }}
-        >
+        <div className="grid grid-cols-2 item-start justify-between">
           <div>
-            <div style={{ marginBottom: "30px" }}>
-              <strong>By Admin On {date}</strong>
-            </div>
-            <div
-              style={{
-                borderTop: "1px solid #333",
-                paddingTop: "10px",
-                marginTop: "20px",
-              }}
-            >
-              Prepare
+            <div style={{ marginBottom: "5px", fontSize: "11px" }}>
+              <strong>
+                Sold By: <u className="mt-2">{preparedBy}</u>
+              </strong>
             </div>
           </div>
           <div>
+            {" "}
+            <strong>
+              <u className="mt-2"></u>
+            </strong>
             <div
               style={{
-                borderTop: "1px solid #333",
-                paddingTop: "10px",
-                minHeight: "40px",
+                marginBottom: "5px",
+                fontSize: "11px",
               }}
+              className=""
             >
-              Void
+              signature:___________
             </div>
           </div>
         </div>
@@ -496,7 +538,7 @@ console.log("saledetail", saleDetail)
           className="gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to POS
+          Go to POS
         </Button>
         <Button onClick={handlePrint} className="gap-2">
           <Printer className="h-4 w-4" />

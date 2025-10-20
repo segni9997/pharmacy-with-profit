@@ -40,6 +40,7 @@ export type MedicinePayload = {
   unit: MedicineUnit;
   company_name?: string;
   department_id: string;
+  TIN_number?: string;
 };
 
 export type GetMedicine = {
@@ -75,6 +76,7 @@ export type GetMedicine = {
   updated_at: string;
   created_by: string;
   refill_count?: number;
+  TIN_number?: string;
 };
 
 interface PaginatedMedicinesResponse {

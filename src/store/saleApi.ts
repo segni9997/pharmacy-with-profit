@@ -42,13 +42,17 @@ export const saleApi = createApi({
   endpoints: (builder) => ({
     getSales: builder.query<
       PaginatedSalesResponse,
-      { pageNumber?: number; pageSize?: number }
+      { pageNumber?: number; pageSize?: number; voucher_number?: string }
     >({
       query: (params = {}) => {
         const queryParams = new URLSearchParams();
         queryParams.append("pageNumber", String(params.pageNumber ?? 1));
         queryParams.append("page_size", String(params.pageSize ?? 10));
+        if (params.voucher_number) {
+          queryParams.append("voucher_number", String(params.voucher_number));
+        }
         const url = `/pharmacy/sales/?${queryParams.toString()}`;
+        console.log("urlllllll", url)
         return {
           url,
           method: "GET",
@@ -69,6 +73,7 @@ export const saleApi = createApi({
         customer_address?: string;
         vat_regno?: string;
         fno?: string;
+        TIN_number?: string;
         payment_method?: string;
         discount_percentage: number;
         sold_by: string;
@@ -76,8 +81,7 @@ export const saleApi = createApi({
           medicine: string;
           quantity: number;
           price: number;
-          sale_type:string
-
+          sale_type: string;
         }[];
       }
     >({
@@ -109,6 +113,7 @@ export const saleApi = createApi({
         customer_address?: string;
         vat_regno?: string;
         fno?: string;
+        TIN_number?: string;
         payment_method?: string;
         discount_percentage: number;
         sold_by: string;

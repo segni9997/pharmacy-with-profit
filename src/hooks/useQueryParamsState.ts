@@ -8,6 +8,7 @@ interface UseQueryParamsStateProps {
   defaultStatus?: string;
   defaultUnit?: string;
   defaultBatchNo?: string;
+  defaultVoucherNumber?: string;
   defaultPage?: number;
   defaultPageSize?: number;
 }
@@ -19,6 +20,7 @@ export function useQueryParamsState({
   defaultBatchNo = "",
   defaultPage = 1,
   defaultPageSize = 10,
+  defaultVoucherNumber= ""
 }: UseQueryParamsStateProps = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -34,6 +36,10 @@ export function useQueryParamsState({
 
   const [batchNo, setBatchNo] = useState(
     searchParams.get("batch_no") || defaultBatchNo
+  );
+
+  const [voucherNumber, setVoucherNumber] = useState(
+    searchParams.get("voucher_number") || defaultVoucherNumber
   );
 
   const [currentPage, setCurrentPage] = useState(() => {
@@ -56,6 +62,7 @@ export function useQueryParamsState({
     newParams.set("status", filterValues.status);
     newParams.set("unit", unit);
     newParams.set("batch_no", batchNo);
+    newParams.set("voucher_number", voucherNumber);
 
     setSearchParams(newParams, { replace: true });
   }, [
@@ -65,6 +72,7 @@ export function useQueryParamsState({
     itemsPerPage,
     unit,
     batchNo,
+    voucherNumber,
     searchParams,
     setSearchParams,
   ]);
@@ -82,5 +90,7 @@ export function useQueryParamsState({
     setUnit,
     batchNo,
     setBatchNo,
+    voucherNumber,
+    setVoucherNumber,
   };
 }

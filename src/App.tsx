@@ -9,11 +9,9 @@ import { MedicineManagement } from './components/medicine-management';
 import { POSSystem } from './components/pos-system';
 import { UserManagement } from './components/user-management';
 import { AnalyticsDashboard } from './components/analytics-dashboard';
-import InvoicePage from './components/invoice';
 import NetworkStatus from './components/NetworkStatus';
 import SalesDetailPage from './pos/sold-medicines';
 import { FloatingSettingsWidget } from './components/settings';
-import Invoice from './components/Invoice2';
 import InvoiceDisplay from './components/Invoice2';
 
 function App() {

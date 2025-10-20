@@ -111,6 +111,7 @@ export function POSSystem() {
   const [customerAddress, setCustomerAddress] = useState("");
   const [vatRegno, setVatRegno] = useState("");
   const [fno, setFno] = useState("");
+  const [tinNumber, setTinNumber] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [discount, setDiscount] = useState(0);
 
@@ -201,6 +202,7 @@ export function POSSystem() {
     setCustomerAddress("");
     setVatRegno("");
     setFno("");
+    setTinNumber("");
     setPaymentMethod("");
     setDiscount(0);
   };
@@ -214,6 +216,7 @@ export function POSSystem() {
       customer_address: customerAddress || "",
       vat_regno: vatRegno || "",
       fno: fno || "",
+      TIN_number: tinNumber || "",
       payment_method: paymentMethod || "",
       discount_percentage: discount,
       sold_by: user?.id || "",
@@ -351,7 +354,7 @@ export function POSSystem() {
                   ) : (
                     <>
                       <Table>
-                        <TableHeader>
+                        <TableHeader className="">
                           <TableRow>
                             <TableHead>Item Name</TableHead>
                             <TableHead>Batch No</TableHead>
@@ -596,6 +599,15 @@ export function POSSystem() {
                       value={fno}
                       onChange={(e) => setFno(e.target.value)}
                       placeholder="Enter F.No"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tinNumber">TIN Number (opt)</Label>
+                    <Input
+                      id="tinNumber"
+                      value={tinNumber}
+                      onChange={(e) => setTinNumber(e.target.value)}
+                      placeholder="Enter TIN Number"
                     />
                   </div>
                   <div className="space-y-2">
