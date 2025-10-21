@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
 import type { GetMedicine } from "@/store/medicineApi";
@@ -30,6 +30,7 @@ import {
   Trash2,
   ShoppingCart,
   Receipt,
+  Package,
 } from "lucide-react";
 import {
   Table,
@@ -45,6 +46,7 @@ import { useCreateSaleMutation } from "@/store/saleApi";
 import { toast } from "sonner";
 import { useQueryParamsState } from "@/hooks/useQueryParamsState";
 import { Pagination } from "@/components/ui/pagination";
+import { useGetSettingsQuery } from "@/store/settingsApi";
 
 interface CartItem {
   medicine: GetMedicine;
@@ -71,7 +73,9 @@ export function POSSystem() {
   } = useQueryParamsState({
     defaultBatchNo: "",
   });
-
+  const { data: Settings } = useGetSettingsQuery(undefined, {
+    refetchOnMountOrArgChange: true,
+  });
   const { data: medicines, refetch } = useGetMedicinesQuery({
     pageNumber: currentPage,
     pageSize: itemsPerPage,
@@ -115,9 +119,45 @@ export function POSSystem() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [discount, setDiscount] = useState(0);
 
+  useEffect(() => {
+    if (Settings?.discount !== undefined) {
+      setDiscount(Settings.discount);
+    }
+  }, [Settings]);
   const subtotal = cart.reduce((sum, item) => sum + item.totalPrice, 0);
-  const discountAmount = (subtotal * discount) / 100;
+  const discountAmount =
+    discount && discount > 0 ? (subtotal * discount) / 100 : 0;
   const total = subtotal - discountAmount;
+
+  const getAvailableStock = (medicine: GetMedicine) => {
+    let cartCartons = 0;
+    let cartUnits = 0;
+
+    cart.forEach((item) => {
+      if (item.medicine.id === medicine.id) {
+        if (item.sale_type === "carton") {
+          cartCartons += item.quantity;
+        } else {
+          cartUnits += item.quantity;
+        }
+      }
+    });
+
+    // Calculate cartons consumed by units
+    const unitsPerCarton = medicine.units_per_carton || 1;
+    const cartonsFromUnits = Math.ceil(cartUnits / unitsPerCarton);
+
+    // Calculate available stock
+    const availableCartons =
+      medicine.stock_carton - cartCartons - cartonsFromUnits;
+    const availableUnits =
+      medicine.total_stock_units - cartUnits - cartCartons * unitsPerCarton;
+
+    return {
+      availableCartons: Math.max(0, availableCartons),
+      availableUnits: Math.max(0, availableUnits),
+    };
+  };
 
   const addToCart = (
     medicine: GetMedicine,
@@ -133,7 +173,12 @@ export function POSSystem() {
         : Number.parseFloat(medicine.price);
 
     if (existingItem) {
-      if (existingItem.quantity < medicine.stock) {
+      const maxQuantity =
+        saleType === "carton"
+          ? medicine.stock_carton
+          : medicine.total_stock_units;
+
+      if (existingItem.quantity < maxQuantity) {
         setCart((prev) =>
           prev.map((item) =>
             item.medicine.id === medicine.id && item.sale_type === saleType
@@ -171,7 +216,81 @@ export function POSSystem() {
     }
 
     const medicine = medicines?.results.find((med) => med.id === medicineId);
-    if (!medicine || newQuantity > medicine.stock) return;
+    if (!medicine) return;
+
+    if (saleType === "unit") {
+      const unitsPerCarton = medicine.units_per_carton || 1;
+
+      if (newQuantity >= unitsPerCarton) {
+        const cartonsToAdd = Math.floor(newQuantity / unitsPerCarton);
+        const remainingUnits = newQuantity % unitsPerCarton;
+
+        const cartonUnitPrice =
+          Number.parseFloat(medicine.price) * unitsPerCarton;
+
+        // Remove the current unit item
+        setCart((prev) =>
+          prev.filter(
+            (item) =>
+              item.medicine.id !== medicineId || item.sale_type !== "unit"
+          )
+        );
+
+        // Update or add carton item
+        setCart((prev) => {
+          const existingCartonItem = prev.find(
+            (item) =>
+              item.medicine.id === medicineId && item.sale_type === "carton"
+          );
+
+          if (existingCartonItem) {
+            return prev.map((item) =>
+              item.medicine.id === medicineId && item.sale_type === "carton"
+                ? {
+                    ...item,
+                    quantity: item.quantity + cartonsToAdd,
+                    totalPrice:
+                      (item.quantity + cartonsToAdd) * cartonUnitPrice,
+                  }
+                : item
+            );
+          } else {
+            return [
+              ...prev,
+              {
+                medicine,
+                quantity: cartonsToAdd,
+                unitPrice: cartonUnitPrice,
+                totalPrice: cartonsToAdd * cartonUnitPrice,
+                sale_type: "carton",
+              },
+            ];
+          }
+        });
+
+        // Add remaining units if any
+        if (remainingUnits > 0) {
+          setCart((prev) => [
+            ...prev,
+            {
+              medicine,
+              quantity: remainingUnits,
+              unitPrice: Number.parseFloat(medicine.price),
+              totalPrice: remainingUnits * Number.parseFloat(medicine.price),
+              sale_type: "unit",
+            },
+          ]);
+        }
+        return;
+      }
+    }
+
+    const maxQuantity =
+      saleType === "carton"
+        ? medicine.stock_carton
+        : medicine.total_stock_units;
+
+    if (newQuantity > maxQuantity) return;
 
     setCart((prev) =>
       prev.map((item) =>
@@ -189,8 +308,7 @@ export function POSSystem() {
   const removeFromCart = (medicineId: string, saleType: "carton" | "unit") => {
     setCart((prev) =>
       prev.filter(
-        (item) =>
-          !(item.medicine.id === medicineId && item.sale_type === saleType)
+        (item) => item.medicine.id !== medicineId || item.sale_type !== saleType
       )
     );
   };
@@ -218,7 +336,7 @@ export function POSSystem() {
       fno: fno || "",
       TIN_number: tinNumber || "",
       payment_method: paymentMethod || "",
-      discount_percentage: discount,
+      discount_percentage: discount || 0,
       sold_by: user?.id || "",
       input_items: cart.map((item) => ({
         medicine: item.medicine.id,
@@ -313,19 +431,6 @@ export function POSSystem() {
                       className="pl-10"
                     />
                   </div>
-                  {/* <Select value={unit} onValueChange={setUnit}>
-                    <SelectTrigger className="w-full sm:w-48">
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Units</SelectItem>
-                      {units?.results.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>
-                          {category.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select> */}
                   <Select value={unit} onValueChange={setUnit}>
                     <SelectTrigger className="w-full sm:w-48">
                       <SelectValue placeholder="All Units" />
@@ -361,8 +466,8 @@ export function POSSystem() {
                             <TableHead>Department</TableHead>
                             <TableHead>Unit Type</TableHead>
                             <TableHead>Price</TableHead>
-                              <TableHead>Cartons</TableHead>
-                              <TableHead>Units/carton</TableHead>
+                            <TableHead>Cartons</TableHead>
+                            <TableHead>Units/carton</TableHead>
                             <TableHead>Stock In Units</TableHead>
                             <TableHead>Add Carton</TableHead>
                             <TableHead>Add Unit</TableHead>
@@ -388,33 +493,51 @@ export function POSSystem() {
                                 <TableCell>{medicine.unit || "N/A"}</TableCell>
                                 <TableCell>Birr {medicine.price}</TableCell>
                                 <TableCell>{medicine.stock_carton}</TableCell>
-                                <TableCell>{medicine.units_per_carton}</TableCell>
+                                <TableCell>
+                                  {medicine.units_per_carton}
+                                </TableCell>
                                 <TableCell>
                                   {medicine.total_stock_units}
                                 </TableCell>
                                 <TableCell>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    title="Add as carton"
-                                    disabled={medicine.stock_carton === 0}
-                                    onClick={() =>
-                                      addToCart(medicine, "carton")
-                                    }
-                                  >
-                                    <Plus className="h-4 w-4" />
-                                  </Button>
+                                  {(() => {
+                                    const available =
+                                      getAvailableStock(medicine);
+                                    return (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        title="Add as carton"
+                                        disabled={
+                                          available.availableCartons <= 0
+                                        }
+                                        onClick={() =>
+                                          addToCart(medicine, "carton")
+                                        }
+                                      >
+                                        <Plus className="h-4 w-4" />
+                                      </Button>
+                                    );
+                                  })()}
                                 </TableCell>
                                 <TableCell>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    title="Add as unit"
-                                    disabled={medicine.total_stock_units === 0}
-                                    onClick={() => addToCart(medicine, "unit")}
-                                  >
-                                    <Plus className="h-4 w-4" />
-                                  </Button>
+                                  {(() => {
+                                    const available =
+                                      getAvailableStock(medicine);
+                                    return (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        title="Add as unit"
+                                        disabled={available.availableUnits <= 0}
+                                        onClick={() =>
+                                          addToCart(medicine, "unit")
+                                        }
+                                      >
+                                        <Plus className="h-4 w-4" />
+                                      </Button>
+                                    );
+                                  })()}
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -430,6 +553,80 @@ export function POSSystem() {
                     </>
                   )}
                 </div>
+              </CardContent>
+              <CardContent>
+                {cart.length > 0 && (
+                  <Card className="border-blue-200 bg-background">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2 text-foreground">
+                        <Package className="h-5 w-5" />
+                        Stock Availability
+                      </CardTitle>
+                      <CardDescription className="text-foreground">
+                        Real-time inventory for items in cart
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {Array.from(
+                          new Map(
+                            cart.map((item) => [
+                              item.medicine.id,
+                              item.medicine,
+                            ])
+                          ).values()
+                        ).map((medicine) => {
+                          const available = getAvailableStock(medicine);
+                          // Get all cart items for this medicine
+                          const medicineCartItems = cart.filter(
+                            (item) => item.medicine.id === medicine.id
+                          );
+
+                          return (
+                            <div
+                              key={medicine.id}
+                              className="flex items-center justify-between p-3 bg-background rounded-lg border border-blue-100"
+                            >
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">
+                                  {medicine.item_name} (B-{medicine.batch_no})
+                                </p>
+                                <p className="text-xs text-foreground">
+                                  {medicineCartItems
+                                    .map(
+                                      (item) =>
+                                        `${item.quantity} ${item.sale_type}`
+                                    )
+                                    .join(" + ")}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <div className="flex gap-4">
+                                  <div>
+                                    <p className="text-xs text-muted-foreground">
+                                      Cartons Available
+                                    </p>
+                                    <p className="text-lg font-bold text-foreground">
+                                      {available.availableCartons}
+                                    </p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-foreground">
+                                      Units Available
+                                    </p>
+                                    <p className="text-lg font-bold text-accent">
+                                      {available.availableUnits}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -464,7 +661,10 @@ export function POSSystem() {
                     <TableBody>
                       {cart.map((item) => (
                         <TableRow key={`${item.medicine.id}-${item.sale_type}`}>
-                          <TableCell>{item.medicine.brand_name}</TableCell>
+                          <TableCell>
+                            {item.medicine.item_name}
+                            <p>B-{item.medicine.batch_no}</p>
+                          </TableCell>
                           <TableCell>
                             <Badge
                               variant={
@@ -497,7 +697,11 @@ export function POSSystem() {
                               <Input
                                 type="number"
                                 min="1"
-                                max={item.medicine.stock}
+                                max={
+                                  item.sale_type === "carton"
+                                    ? item.medicine.stock_carton
+                                    : item.medicine.total_stock_units
+                                }
                                 value={item.quantity}
                                 onChange={(e) =>
                                   updateQuantity(
@@ -655,7 +859,7 @@ export function POSSystem() {
                     <span>Subtotal:</span>
                     <span>Birr {subtotal.toFixed(2)}</span>
                   </div>
-                  {discount > 0 && (
+                  {discount && discount > 0 && (
                     <div className="flex justify-between text-accent">
                       <span>Discount ({discount}%):</span>
                       <span>-Birr {discountAmount.toFixed(2)}</span>

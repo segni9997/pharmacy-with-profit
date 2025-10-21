@@ -13,7 +13,9 @@ export interface  pagination {
 interface PaginatedSalesResponse {
   results: Sale[];
   pagination: pagination;
- 
+  total_pages?: number;
+  page?: number;
+  total_items?: number;
 }
 
 interface PaginatedSaleItemsResponse {
@@ -52,7 +54,26 @@ export const saleApi = createApi({
           queryParams.append("voucher_number", String(params.voucher_number));
         }
         const url = `/pharmacy/sales/?${queryParams.toString()}`;
-        console.log("urlllllll", url)
+        console.log("urlllllll", url);
+        return {
+          url,
+          method: "GET",
+        };
+      },
+    }),
+    getsoldMedicines: builder.query<
+      PaginatedSalesResponse,
+      { pageNumber?: number; pageSize?: number; voucher_number?: string }
+    >({
+      query: (params = {}) => {
+        const queryParams = new URLSearchParams();
+        queryParams.append("pageNumber", String(params.pageNumber ?? 1));
+        queryParams.append("page_size", String(params.pageSize ?? 10));
+        if (params.voucher_number) {
+          queryParams.append("voucher_number", String(params.voucher_number));
+        }
+        const url = `/pharmacy/sales/sold-medicines/?${queryParams.toString()}`;
+        console.log("urlllllll", url);
         return {
           url,
           method: "GET",
@@ -140,6 +161,7 @@ export const saleApi = createApi({
 });
 
 export const {
+  useGetsoldMedicinesQuery,
   useGetSalesQuery,
   useGetSaleByIdQuery,
   useCreateSaleMutation,

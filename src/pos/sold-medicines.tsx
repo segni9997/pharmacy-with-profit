@@ -1,5 +1,6 @@
+"use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -34,17 +35,20 @@ import type { Sale } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { useQueryParamsState } from "@/hooks/useQueryParamsState";
 import { toast } from "sonner";
-import { useDeleteSaleMutation, useGetSalesQuery } from "@/store/saleApi";
+import {
+  useDeleteSaleMutation,
+  useGetsoldMedicinesQuery,
+} from "@/store/saleApi";
 import { useNavigate } from "react-router-dom";
+import { Pagination } from "@/components/ui/pagination";
 
 type FilterType = "date" | "week" | "month";
 
-function filterSalesByDateRange(
-  sales: Sale[],
+function getDateRangeParams(
   filterType: FilterType,
   selectedValue: string
-): Sale[] {
-  if (!selectedValue) return sales;
+): { startDate?: string; endDate?: string } {
+  if (!selectedValue) return {};
 
   let startDate: Date;
   let endDate: Date;
@@ -80,13 +84,13 @@ function filterSalesByDateRange(
       endDate.setHours(23, 59, 59, 999);
       break;
     default:
-      return sales;
+      return {};
   }
 
-  return sales.filter((sale) => {
-    const saleDate = new Date(sale.sale_date);
-    return saleDate >= startDate && saleDate <= endDate;
-  });
+  return {
+    startDate: startDate.toISOString().split("T")[0],
+    endDate: endDate.toISOString().split("T")[0],
+  };
 }
 
 export default function SalesDetailPage() {
@@ -96,23 +100,14 @@ export default function SalesDetailPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [activeExpandedId, setActiveExpandedId] = useState<string | null>(null);
 
-  const { currentPage, setCurrentPage, itemsPerPage, setItemsPerPage, voucherNumber, setVoucherNumber } =
-    useQueryParamsState();
-
   const {
-    data: salesResponse,
-    isLoading,
-    error,
-    refetch,
-  } = useGetSalesQuery({
-    pageNumber: currentPage,
-    pageSize: itemsPerPage,
-    voucher_number: voucherNumber,
-  });
-console.log("sold med", salesResponse)
-  useEffect(() => {
-    refetch();
-  }, [itemsPerPage, refetch, voucherNumber]);
+    currentPage,
+    setCurrentPage,
+    itemsPerPage,
+    setItemsPerPage,
+    voucherNumber,
+    setVoucherNumber,
+  } = useQueryParamsState();
 
   const selectedValue =
     filterType === "date"
@@ -121,32 +116,35 @@ console.log("sold med", salesResponse)
       ? selectedWeek
       : selectedMonth;
 
-  const filteredSales = useMemo(() => {
-    if (!salesResponse?.results) return [];
-    return filterSalesByDateRange(
-      salesResponse.results,
-      filterType,
-      selectedValue
-    );
-  }, [salesResponse?.results, filterType, selectedValue]);
+  const dateRangeParams = getDateRangeParams(filterType, selectedValue);
 
-  const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
-  const paginatedSales = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredSales.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredSales, currentPage, itemsPerPage]);
+  const {
+    data: salesResponse,
+    isLoading,
+    error,
+    refetch,
+  } = useGetsoldMedicinesQuery({
+    pageNumber: currentPage,
+    pageSize: itemsPerPage,
+    voucher_number: voucherNumber,
+    ...dateRangeParams,
+  });
 
-  const totalRevenue = filteredSales.reduce(
+  useEffect(() => {
+    refetch();
+  }, [itemsPerPage, refetch, voucherNumber, filterType, selectedValue]);
+
+  const totalRevenue = (salesResponse?.results || []).reduce(
     (sum, sale) => sum + Number.parseFloat(sale.total_amount || "0"),
     0
   );
-  const totalItems = filteredSales.reduce((sum, sale) => {
+  const totalItems = (salesResponse?.results || []).reduce((sum, sale) => {
     return (
       sum +
       (sale.items?.reduce((itemSum, item) => itemSum + item.quantity, 0) || 0)
     );
   }, 0);
-  const totalDiscount = filteredSales.reduce(
+  const totalDiscount = (salesResponse?.results || []).reduce(
     (sum, sale) => sum + Number.parseFloat(sale.discounted_amount || "0"),
     0
   );
@@ -352,7 +350,7 @@ console.log("sold med", salesResponse)
         </div>
 
         {/* Sales Cards Grid */}
-        {filteredSales.length === 0 ? (
+        {(salesResponse?.results || []).length === 0 ? (
           <Card className="bg-card border-border">
             <CardContent className="pt-12 pb-12 text-center">
               <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
@@ -363,8 +361,8 @@ console.log("sold med", salesResponse)
           </Card>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 items-start">
-              {paginatedSales.map((sale) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8 items-start">
+              {(salesResponse?.results || []).map((sale) => (
                 <SalesCard
                   key={sale.id}
                   sale={sale}
@@ -375,68 +373,13 @@ console.log("sold med", salesResponse)
               ))}
             </div>
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 p-4 bg-card border border-border rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Label className="text-sm">Items per page:</Label>
-                  <Select
-                    value={itemsPerPage.toString()}
-                    onValueChange={(value) =>
-                      setItemsPerPage(Number.parseInt(value))
-                    }
-                  >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="3">3</SelectItem>
-                      <SelectItem value="6">6</SelectItem>
-                      <SelectItem value="9">9</SelectItem>
-                      <SelectItem value="12">12</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                    disabled={currentPage === 1}
-                    variant="outline"
-                  >
-                    Previous
-                  </Button>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      (page) => (
-                        <Button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          variant={currentPage === page ? "default" : "outline"}
-                          size="sm"
-                          className="w-10"
-                        >
-                          {page}
-                        </Button>
-                      )
-                    )}
-                  </div>
-                  <Button
-                    onClick={() =>
-                      setCurrentPage(Math.min(totalPages, currentPage + 1))
-                    }
-                    disabled={currentPage === totalPages}
-                    variant="outline"
-                  >
-                    Next
-                  </Button>
-                </div>
-
-                <div className="text-sm text-muted-foreground">
-                  Page {currentPage} of {totalPages}
-                </div>
-              </div>
-            )}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={salesResponse?.total_pages || 1}
+              itemsPerPage={itemsPerPage}
+              onPageChange={setCurrentPage}
+              onItemsPerPageChange={setItemsPerPage}
+            />
           </>
         )}
       </div>
@@ -508,14 +451,14 @@ function SalesCard({
       </div>
     ));
   };
-const handleInvoice = (sale: Sale) => {
-  navigate("/invoice", {
-    state: {
-      sale,
-      ...(sale.id && { saleId: sale.id }),
-    },
-  });
-};
+  const handleInvoice = (sale: Sale) => {
+    navigate("/invoice", {
+      state: {
+        sale,
+        ...(sale.id && { saleId: sale.id }),
+      },
+    });
+  };
   return (
     <Card className="bg-background/70 backdrop-blur-sm hover:shadow-2xl hover:scale-105 transition-all duration-300 h-fit overflow-hidden group pt-0">
       <CardHeader className="pb-4 bg-gradient-to-br from-background via-background to-background/90 relative overflow-hidden pt-2">
@@ -705,7 +648,9 @@ const handleInvoice = (sale: Sale) => {
                       </span>
                       <span className="text-xs text-muted-foreground">
                         Birr{" "}
-                       { (Number.parseFloat(item.price || "0") * item.quantity).toLocaleString("en-US", {
+                        {(
+                          Number.parseFloat(item.price || "0") * item.quantity
+                        ).toLocaleString("en-US", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
                         })}
@@ -773,4 +718,3 @@ const handleInvoice = (sale: Sale) => {
     </Card>
   );
 }
- 

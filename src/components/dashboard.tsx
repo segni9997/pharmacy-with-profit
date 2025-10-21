@@ -186,7 +186,7 @@ export function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-warning to-warning/80 text-warning-foreground shadow-lg hover:shadow-xl transition-shadow cursor-default">
+          <Card className="bg-gradient-to-br from-accent to-accent/80 text-accent-foreground shadow-lg hover:shadow-xl transition-shadow cursor-default">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 px-3 pt-3">
               <CardTitle className="text-xs font-semibold">Low Stock</CardTitle>
               <AlertTriangle className="h-4 w-4 text-warning-foreground opacity-80" />

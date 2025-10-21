@@ -120,8 +120,7 @@ export function MedicineManagement() {
     department: "",
     company_name: "",
     unit_type: "Strip" as MedicineUnit,
-    number_of_cartons: "",
-    items_per_carton: "",
+ 
     piece_price: "",
     buying_price: "",
     price: "",
@@ -143,7 +142,6 @@ export function MedicineManagement() {
       refetchOnMountOrArgChange: true,
     }
   );
-  console.log(Units)
   const { data: meds, refetch: refetchMeds } = useGetMedicinesQuery(
     {
       pageNumber: currentPage,
@@ -155,7 +153,9 @@ export function MedicineManagement() {
       refetchOnMountOrArgChange: true,
     }
   );
-  const {data:settings}= useGetSettingsQuery()
+
+  const { data: settings } = useGetSettingsQuery()
+  console.log(settings)
   const [AddUnit, { isLoading: isUnitAdding }] = useCreateUnitMutation();
   const [UpdateUnit] = useUpdateUnitMutation();
   const [DeleteUnit] = useDeleteUnitMutation();
@@ -340,9 +340,7 @@ console.log(expiryDays)
       manufacture_date:  "",
       department: formData.department || "",
       unit_type: formData.unit_type || "Strip" as MedicineUnit,
-      number_of_cartons: formData.number_of_cartons || "",
       company_name: formData.company_name || "",
-      items_per_carton: formData.items_per_carton ||  "",
       piece_price: "",
       buying_price: "",
       price: "",
@@ -364,9 +362,7 @@ console.log(expiryDays)
       manufacture_date: "",
       department: "",
       unit_type: "Strip" as MedicineUnit,
-      number_of_cartons: "",
       company_name: "",
-      items_per_carton: "",
       piece_price: "",
       stock_carton: "",
       stock_in_unit: "",
@@ -465,7 +461,10 @@ const { cartons, totalPieces } = calculateTotalPieces();
           brand_name: formData.brand_name,
           item_name: formData.items_name,
           batch_no: formData.batch_no,
-          manufacture_date: formData.manufacture_date,
+          ...(formData.manufacture_date && {
+            manufacture_date: formData.manufacture_date,
+          }
+          ),
           company_name: formData.company_name,
           expire_date: formData.expire_date,
           buying_price: Number.parseFloat(formData.buying_price),
@@ -481,6 +480,7 @@ const { cartons, totalPieces } = calculateTotalPieces();
         setIsAddSheetOpen(false);
         refetchMeds();
       } catch (error) {
+        console.log(error)
         toast.error("Failed to update medicine");
       }
     } else {
@@ -502,7 +502,6 @@ const { cartons, totalPieces } = calculateTotalPieces();
           company_name: formData.company_name
         }
         ),
-        TIN_number: formData.TIN_number,
         units_per_carton:Number.parseInt(formData.units_per_carton),
         stock_in_unit: Number.parseInt(formData.stock_in_unit),
         stock_carton: Number.parseInt(formData.stock_carton) || cartons,
@@ -521,32 +520,43 @@ const { cartons, totalPieces } = calculateTotalPieces();
     // resetForm();
   };
   
-  const handleEdit = (medicine: GetMedicine) => {
+const handleEdit = (medicine: GetMedicine) => {
+  try {
     setEditingMedicine(medicine);
     setFormData({
-      brand_name: medicine.brand_name,
+      brand_name: medicine.brand_name || "",
       items_name: medicine.item_name || "",
-      batch_no: medicine.batch_no,
-      manufacture_date: medicine.manufacture_date,
+      batch_no: medicine.batch_no || "",
+      manufacture_date: medicine.manufacture_date || "",
       department: medicine.department?.id?.toString() || "",
-      unit_type: (medicine.unit as MedicineUnit) || "Strip",
       company_name: medicine.company_name || "",
-      number_of_cartons:  "",
-      items_per_carton:  "",
-      piece_price: medicine.price?.toString() || "",
-      buying_price: medicine.buying_price?.toString() || "",
-      price: medicine.price.toString(),
-      stock: medicine.stock.toString(),
-      expire_date: medicine.expire_date.split("T")[0],
-      unit: medicine.unit as MedicineUnit,
-      units_per_carton: medicine.units_per_carton?.toString() || "",
-      stock_carton: medicine.stock_carton?.toString() || "",
-      stock_in_unit: medicine.stock_in_unit?.toString() || "",
-      TIN_number: "",
+      unit_type: (medicine.unit as MedicineUnit) || "Strip",
+      piece_price: medicine.price ? String(medicine.price) : "",
+      buying_price: medicine.buying_price ? String(medicine.buying_price) : "",
+      price: medicine.price ? String(medicine.price) : "",
+      stock: medicine.stock ? String(medicine.stock) : "",
+      stock_carton: medicine.stock_carton ? String(medicine.stock_carton) : "",
+      stock_in_unit: medicine.stock_in_unit
+        ? String(medicine.stock_in_unit)
+        : "",
+      units_per_carton: medicine.units_per_carton
+        ? String(medicine.units_per_carton)
+        : "",
+      expire_date: medicine.expire_date
+        ? medicine.expire_date.split("T")[0]
+        : "",
+      unit: (medicine.unit as MedicineUnit) || "Strip",
+      TIN_number: medicine.TIN_number || "",
     });
 
     setIsAddSheetOpen(true);
-  };
+  } catch (err) {
+    console.error("Error setting formData:", err);
+    // still open the drawer even if some data failed
+    setIsAddSheetOpen(true);
+  }
+};
+
 
   const handleDelete = async (medicineCode: string) => {
     if (confirm("Are you sure you want to delete this medicine?")) {
@@ -893,7 +903,7 @@ const { cartons, totalPieces } = calculateTotalPieces();
                                 <Input
                                   id="stock_in_unit"
                                   type="number"
-                                  value={formData.stock_carton}
+                                  value={Number.parseInt(formData.stock_carton)}
                                   onChange={(e) =>
                                     setFormData((prev) => ({
                                       ...prev,
@@ -918,7 +928,7 @@ const { cartons, totalPieces } = calculateTotalPieces();
                                 <Input
                                   id="units_per_carton"
                                   type="number"
-                                  value={formData.units_per_carton}
+                                  value={Number.parseInt(formData.units_per_carton)}
                                   onChange={(e) =>
                                     setFormData((prev) => ({
                                       ...prev,
@@ -937,7 +947,7 @@ const { cartons, totalPieces } = calculateTotalPieces();
                                 <Input
                                   id="stockQuantity"
                                   type="number"
-                                  value={formData.stock_in_unit}
+                                  value={Number.parseInt(formData.stock_in_unit)}
                                   onChange={(e) =>
                                     setFormData((prev) => ({
                                       ...prev,
@@ -1543,9 +1553,9 @@ const { cartons, totalPieces } = calculateTotalPieces();
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-border">
+                  <TableRow className="border-border"><TableHead className="text-foreground">Image</TableHead>
                     <TableHead className="text-foreground">Medicine</TableHead>
-                    <TableHead className="text-foreground">Image</TableHead>
+                    
                     <TableHead className="text-foreground">Code No</TableHead>
                     <TableHead className="text-foreground">
                       Department
@@ -1577,24 +1587,13 @@ const { cartons, totalPieces } = calculateTotalPieces();
                 </TableHeader>
                 <TableBody>
                   {filteredMedicines.map((medicine) => {
-                    const stockStatus = getStockStatus(medicine.stock);
+                    const stockStatus = getStockStatus(medicine.total_stock_units);
                     const expiryStatus = getExpiryStatus(
                       new Date(medicine.expire_date)
                     );
 
                     return (
-                      <TableRow key={medicine.id} className="hover:bg-muted/50">
-                        <TableCell>
-                          <div>
-                            <div className="font-semibold text-foreground">
-                              {medicine.brand_name}
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {medicine.item_name}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
+                      <TableRow key={medicine.id} className="hover:bg-muted/50"> <TableCell>
                           {medicine.attachment ? (
                             <img
                               src={medicine.attachment || "/placeholder.svg"}
@@ -1607,6 +1606,17 @@ const { cartons, totalPieces } = calculateTotalPieces();
                             </div>
                           )}
                         </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="font-semibold text-foreground">
+                              {medicine.item_name}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                             Brand: {medicine.brand_name}
+                            </div>
+                          </div>
+                        </TableCell>
+                       
                         <TableCell className="font-mono text-sm text-foreground">
                           {medicine.department?.code || "N/A"}
                         </TableCell>
@@ -1643,7 +1653,7 @@ const { cartons, totalPieces } = calculateTotalPieces();
                             variant={stockStatus.variant}
                             className="font-medium"
                           >
-                            {medicine.stock} units
+                            {medicine.total_stock_units} units
                           </Badge>
                         </TableCell>
                         <TableCell>

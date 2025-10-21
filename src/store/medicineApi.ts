@@ -40,7 +40,6 @@ export type MedicinePayload = {
   unit: MedicineUnit;
   company_name?: string;
   department_id: string;
-  TIN_number?: string;
 };
 
 export type GetMedicine = {
