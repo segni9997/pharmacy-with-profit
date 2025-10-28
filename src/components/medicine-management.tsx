@@ -62,8 +62,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  AlertTriangle,
-  Calendar1Icon,
+  // AlertTriangle,
+  // Calendar1Icon,
   Package,
   Plus,
   Search,
@@ -74,7 +74,7 @@ import {
   Menu,
   CalendarIcon,
 } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+// import { Alert, AlertDescription } from "@/components/ui/alert";
 import { jwtDecode } from "jwt-decode";
 import {
   useGetUnitsQuery,
@@ -202,12 +202,12 @@ console.log(meds)
     { value: "Tube", label: "Tube" },
     { value: "Box", label: "Box" },
     { value: "Cosmetics", label: "Cosmetics" },
-    { value: "10x100", label: "10 x 100" },
-    { value: "Of10", label: "Of 10" },
-    { value: "Of20", label: "Of 20" },
-    { value: "Of14", label: "Of 14" },
-    { value: "Of28", label: "Of 28" },
-    { value: "Of30", label: "Of 30" },
+    { value: "10 x 100", label: "10 x 100" },
+    { value: "Of 10", label: "Of 10" },
+    { value: "Of 20", label: "Of 20" },
+    { value: "Of 14", label: "Of 14" },
+    { value: "Of 28", label: "Of 28" },
+    { value: "Of 30", label: "Of 30" },
     { value: "Suppository", label: "Suppository" },
     { value: "Pcs", label: "Pcs" },
     { value: "Tablet", label: "Tablet" },
@@ -1636,7 +1636,7 @@ const handleDownload = async (endpoint: string, baseFilename: string) => {
         </div>
 
         {/* Alerts */}
-        <div className="space-y-6 mb-8">
+        {/* <div className="space-y-6 mb-8">
           {meds?.results &&
             meds.results.filter(
               (med) => med.total_stock_units < med.low_threshold
@@ -1675,7 +1675,7 @@ const handleDownload = async (endpoint: string, baseFilename: string) => {
                 </AlertDescription>
               </Alert>
             )}
-        </div>
+        </div> */}
 
         {/* Medicine Table */}
         <Card className="shadow-xl border-border">

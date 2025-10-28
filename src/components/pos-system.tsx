@@ -1,5 +1,3 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/lib/auth";
@@ -31,7 +29,7 @@ import {
   ShoppingCart,
   Receipt,
   Package,
-  Download,
+  // Download,
 } from "lucide-react";
 import {
   Table,
@@ -49,7 +47,7 @@ import { useQueryParamsState } from "@/hooks/useQueryParamsState";
 import { Pagination } from "@/components/ui/pagination";
 import { useGetSettingsQuery } from "@/store/settingsApi";
 import { NavDropdown } from "./navDropDown";
-import * as XLSX from "xlsx";
+// import * as XLSX from "xlsx";
 
 interface CartItem {
   medicine: GetMedicine;
@@ -103,12 +101,12 @@ export function POSSystem() {
     { value: "Tube", label: "Tube" },
     { value: "Box", label: "Box" },
     { value: "Cosmetics", label: "Cosmetics" },
-    { value: "10x100", label: "10 x 100" },
-    { value: "Of10", label: "Of 10" },
-    { value: "Of20", label: "Of 20" },
-    { value: "Of14", label: "Of 14" },
-    { value: "Of28", label: "Of 28" },
-    { value: "Of30", label: "Of 30" },
+    { value: "10 x 100", label: "10 x 100" },
+    { value: "Of 10", label: "Of 10" },
+    { value: "Of 20", label: "Of 20" },
+    { value: "Of 14", label: "Of 14" },
+    { value: "Of 28", label: "Of 28" },
+    { value: "Of 30", label: "Of 30" },
     { value: "Suppository", label: "Suppository" },
     { value: "Pcs", label: "Pcs" },
     { value: "Pk", label: "Pk" },
@@ -373,41 +371,44 @@ export function POSSystem() {
     );
   };
 
-  const handleExport = () => {
-    if (!medicines?.results) return;
+  // const handleExport = () => {
+  //   if (!medicines?.results) return;
 
-    const data = medicines.results
-      .filter(
-        (medicine) =>
-          medicine.stock_carton > 0 || medicine.total_stock_units > 0
-      )
-      .map((medicine) => ({
-        "Item Name": medicine.item_name,
-        "Batch No": medicine.batch_no,
-        Department: getCategoryName(medicine.department?.id),
-        "Unit Type": medicine.unit || "N/A",
-        Price: `Birr ${medicine.price}`,
-        Cartons: medicine.stock_carton,
-        "Units per Carton": medicine.units_per_carton,
-        "Stock in Units": medicine.total_stock_units,
-      }));
+  //   const data = medicines.results
+  //     .filter(
+  //       (medicine) =>
+  //         medicine.stock_carton > 0 || medicine.total_stock_units > 0
+  //     )
+  //     .map((medicine) => ({
+  //       "Item Name": medicine.item_name,
+  //       "Batch No": medicine.batch_no,
+  //       Department: getCategoryName(medicine.department?.id),
+  //       "Unit Type": medicine.unit || "N/A",
+  //       Price: `Birr ${medicine.price}`,
+  //       Cartons: medicine.stock_carton,
+  //       "Units per Carton": medicine.units_per_carton,
+  //       "Stock in Units": medicine.total_stock_units,
+  //     }));
 
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Medicines");
-    XLSX.writeFile(wb, "pos_medicines.xlsx");
-  };
+  //   const ws = XLSX.utils.json_to_sheet(data);
+  //   const wb = XLSX.utils.book_new();
+  //   XLSX.utils.book_append_sheet(wb, ws, "Medicines");
+  //   XLSX.writeFile(wb, "pos_medicines.xlsx");
+  // };
 
   return (
     <div className="min-h-screen bg-background">
-        <div className="fixed top-4 right-4 z-50">
-              <NavDropdown />
-            </div>
+      <div className="fixed top-4 right-4 z-50">
+        <NavDropdown />
+      </div>
       {/* Header */}
       <header className="border-b bg-card">
         <div className="flex h-16 items-center justify-between px-6">
           <div className="flex items-center gap-4">
-            <h1 className="md:text-3xl text-lg font-bold text-primary">
+            <h1 className="md:hidden text-sm font-bold text-primary">
+              POS
+            </h1>
+            <h1 className="hidden md:flex md:text-3xl text-sm font-bold text-primary">
               Point of Sale
             </h1>
           </div>
@@ -422,15 +423,7 @@ export function POSSystem() {
             >
               Sold Medicine
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              disabled={!medicines?.results || medicines.results.length === 0}
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export Medicines
-            </Button>
+         
           </div>
         </div>
       </header>
