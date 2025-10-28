@@ -68,7 +68,7 @@ export function FloatingSettingsWidget() {
           />
 
           {/* Expanded Card */}
-          <div className="fixed bottom-20 right-4 z-50 w-96 max-h-[90vh] overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="fixed bottom-20 right-4 z-50 md:w-72 lg:w-96 w-[90%]  max-h-[90vh] overflow-y-auto animate-in fade-in slide-in-from-bottom-4 duration-300">
             <Card className="shadow-2xl">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <div>

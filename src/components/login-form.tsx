@@ -55,7 +55,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           <div className="flex items-center justify-center space-x-2">
             <Pill className="h-8 w-8 text-primary" />
             <CardTitle className="text-3xl font-extrabold tracking-tight text-primary">
-              NATI PHARMACY
+              Nati pharma Import
             </CardTitle>
           </div>
           <CardDescription className="text-muted-foreground">

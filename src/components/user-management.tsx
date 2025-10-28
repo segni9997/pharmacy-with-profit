@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useCreateUSerMutation, useDeleteUsersByIdMutation, useGetUsersQuery, useUpdateUsersByIdMutation } from "@/store/userApi";
 import { useQueryParamsState } from "@/hooks/useQueryParamsState";
 import { Pagination } from "@/components/ui/pagination";
+import { NavDropdown } from "./navDropDown";
 
 
 export function UserManagement() {
@@ -182,6 +183,9 @@ if (editingUser) {
 
   return (
     <div className="min-h-screen bg-background">
+        <div className="fixed top-4 right-4 z-50">
+              <NavDropdown />
+            </div>
       {/* Header */}
       <header className="border-b bg-card">
         <div className="flex h-16 items-center justify-between px-6">
@@ -296,7 +300,7 @@ if (editingUser) {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="pharmacist">Pharmacist</SelectItem>
+                          <SelectItem value="storeManager">Store Manager</SelectItem>
                           {/* <SelectItem value="cashier">Cashier</SelectItem> */}
                         </SelectContent>
                       </Select>

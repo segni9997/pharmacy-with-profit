@@ -33,6 +33,8 @@ export type MedicinePayload = {
   buying_price: number;
   price: number;
   stock: number;
+  low_threshold: number;
+  expired_date: string;
   stock_in_unit: number;
   stock_carton: number;
   units_per_carton:number;
@@ -61,7 +63,10 @@ export type GetMedicine = {
   low_stock_threshold: number;
   unit: MedicineUnit;
   unit_display: string;
-  company_name: string;
+  expired_date: string;
+
+  low_threshold: number;
+  company_name:string;
   department: {
     id: string;
     code: string;
@@ -82,7 +87,13 @@ interface PaginatedMedicinesResponse {
   results: GetMedicine[];
   pagination: pagination;
 }
-
+interface PaginatedMedicinesResponseAlert {
+  data: GetMedicine[];
+  count: number;
+  alert: boolean;
+  message:string
+  pagination?: pagination;
+}
 export const medicineApi = createApi({
   reducerPath: "medicineApi",
   baseQuery: fetchBaseQuery({
@@ -116,8 +127,9 @@ export const medicineApi = createApi({
         queryParams.append("page_size", String(params.pageSize ?? 10));
         if (params.unit) queryParams.append("unit", params.unit);
         if (params.batch_no) queryParams.append("batch_no", params.batch_no);
-        if(params.search) queryParams.append("search", params.search);
+        if (params.search) queryParams.append("search", params.search);
         const url = `/pharmacy/medicines/?${queryParams.toString()}`;
+        console.log(url);
         return { url, method: "GET" };
       },
     }),
@@ -128,7 +140,12 @@ export const medicineApi = createApi({
         method: "GET",
       }),
     }),
-
+    getalerts: builder.query<PaginatedMedicinesResponseAlert, void>({
+      query: () => ({
+        url: `/pharmacy/medicines/alerts/`,
+        method: "GET",
+      }),
+    }),
     createMedicine: builder.mutation<GetMedicine, MedicinePayload>({
       query: (body) => ({
         url: "/pharmacy/medicines/",
@@ -163,4 +180,5 @@ export const {
   useCreateMedicineMutation,
   useUpdateMedicineMutation,
   useDeleteMedicineMutation,
+  useGetalertsQuery,
 } = medicineApi;

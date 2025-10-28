@@ -1,6 +1,6 @@
 
 import type React from "react";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
   PopoverContent,
@@ -63,7 +63,7 @@ import {
 } from "@/components/ui/table";
 import {
   AlertTriangle,
-  Calendar,
+  Calendar1Icon,
   Package,
   Plus,
   Search,
@@ -74,7 +74,6 @@ import {
   Menu,
   CalendarIcon,
 } from "lucide-react";
-import * as XLSX from "xlsx";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { jwtDecode } from "jwt-decode";
 import {
@@ -97,6 +96,8 @@ import {
 import { useQueryParamsState } from "@/hooks/useQueryParamsState";
 import { Pagination } from "@/components/ui/pagination";
 import { useGetSettingsQuery } from "@/store/settingsApi";
+import { NavDropdown } from "./navDropDown";
+import { useLazyExportExcelQuery } from "@/store/exportApi";
 
 export function MedicineManagement() {
   const {
@@ -108,6 +109,8 @@ export function MedicineManagement() {
     setUnit,
     batchNo,
     setBatchNo,
+    searchValue,
+    setSearchValue
   } = useQueryParamsState();
 
   const [unitCurrentPage, setUnitCurrentPage] = useState(1);
@@ -120,7 +123,8 @@ export function MedicineManagement() {
     department: "",
     company_name: "",
     unit_type: "Strip" as MedicineUnit,
- 
+    low_threshold: "",
+    expired_date: "",
     piece_price: "",
     buying_price: "",
     price: "",
@@ -142,18 +146,28 @@ export function MedicineManagement() {
       refetchOnMountOrArgChange: true,
     }
   );
+   const { data: UnitsSelection } = useGetUnitsQuery(
+     {
+       pageNumber: unitCurrentPage,
+       pageSize: unitItemsPerPage,
+     },
+     {
+       refetchOnMountOrArgChange: true,
+     }
+   );
   const { data: meds, refetch: refetchMeds } = useGetMedicinesQuery(
     {
       pageNumber: currentPage,
       pageSize: itemsPerPage,
       unit,
       batch_no: batchNo,
+      search:searchValue
     },
     {
       refetchOnMountOrArgChange: true,
     }
   );
-
+console.log(meds)
   const { data: settings } = useGetSettingsQuery()
   console.log(settings)
   const [AddUnit, { isLoading: isUnitAdding }] = useCreateUnitMutation();
@@ -164,7 +178,6 @@ export function MedicineManagement() {
   const [UpdateMedicine] = useUpdateMedicineMutation();
   const [DeleteMedicine] = useDeleteMedicineMutation();
   const [open, setOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedUnitType, setSelectedUnitType] = useState<string>("all");
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
@@ -258,34 +271,12 @@ const calculateTotalPieces = () => {
 
   const canEdit = user?.role === "admin";
 
-  const filteredMedicines = useMemo(() => {
-    return (
-      meds?.results?.filter((medicine) => {
-        const matchesSearch =
-          medicine.brand_name
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          medicine.item_name
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          medicine.company_name
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) 
 
-        const matchesCategory =
-          selectedCategory === "all" ||
-          medicine.department.id.toString() === selectedCategory;
-
-        return matchesSearch && matchesCategory;
-      }) || []
-    );
-  }, [meds, searchTerm, selectedCategory, selectedUnitType]);
-
-  const getStockStatus = (quantity: number) => {
+  const getStockStatus = (quantity: number, lowthreshold:number) => {
 
     if (quantity === 0)
       return { label: "Out of Stock", variant: "destructive" as const };
-    if (settings && quantity <= settings.low_stock_threshold) {
+    if ( quantity <= lowthreshold) {
       return { label: "Low Stock", variant: "warning" as const };
     }
 
@@ -294,40 +285,65 @@ const calculateTotalPieces = () => {
 
 const getExpiryStatus = (expiryDate: Date) => {
   const today = new Date();
-
-  // ✅ Fallback to 30 days if settings aren’t loaded yet
-  const expiryDays = settings?.expired_date ?? 20;
-console.log(expiryDays)
+  // ✅ Default fallback if no setting loaded
   const alertDate = new Date(
-    today.getTime() + expiryDays * 24 * 60 * 60 * 1000
+    today.getTime() + 1 * 24 * 60 * 60 * 1000
   );
-  console.log("alertdate", alertDate)
-  const diffTime = expiryDate.getTime() - today.getTime();
-  const remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  console.log("diff", diffTime, remainingDays);
 
-  if (expiryDate < today)
+  // Calculate difference in milliseconds
+  const diffTime = expiryDate.getTime() - today.getTime();
+
+  // Convert to total days remaining
+  let remainingDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  // Helper: convert total days into years, months, days
+  const years = Math.floor(remainingDays / 365);
+  remainingDays %= 365;
+  const months = Math.floor(remainingDays / 30);
+  const days = remainingDays % 30;
+  
+  const formatRemaining = () => {
+    const parts: string[] = [];
+    if (years > 0) parts.push(`${years} yr${years > 1 ? "s" : ""}`);
+    if (months > 0) parts.push(`${months} month${months > 1 ? "s" : ""}`);
+    if (days > 0 || parts.length === 0)
+      parts.push(`${days} day${days !== 1 ? "s" : ""}`);
+    return parts.join(" ");
+  };
+
+  if (expiryDate < today) {
+    const pastDiff = today.getTime() - expiryDate.getTime();
+    let pastDays = Math.ceil(pastDiff / (1000 * 60 * 60 * 24));
+    const pastYears = Math.floor(pastDays / 365);
+    pastDays %= 365;
+    const pastMonths = Math.floor(pastDays / 30);
+    pastDays = pastDays % 30;
+
+    const parts: string[] = [];
+    if (pastYears > 0) parts.push(`${pastYears} yr${pastYears > 1 ? "s" : ""}`);
+    if (pastMonths > 0)
+      parts.push(`${pastMonths} month${pastMonths > 1 ? "s" : ""}`);
+    if (pastDays > 0 || parts.length === 0)
+      parts.push(`${pastDays} day${pastDays !== 1 ? "s" : ""}`);
+
     return {
       label: "Expired",
       variant: "destructive" as const,
-      message: `Expired ${Math.abs(remainingDays)} day${
-        Math.abs(remainingDays) !== 1 ? "s" : ""
-      } ago`,
+      message: `Expired ${parts.join(" ")} ago`,
     };
+  }
 
   if (expiryDate <= alertDate)
     return {
-      label: `Expires in ${remainingDays} day${remainingDays !== 1 ? "s" : ""}`,
+      label: `Expires in ${formatRemaining()}`,
       variant: "warning" as const,
-      message: `Expires in ${remainingDays} day${
-        remainingDays !== 1 ? "s" : ""
-      }`,
+      message: `Expires in ${formatRemaining()}`,
     };
 
   return {
-    label: "Valid",
+    label: `Expires in ${formatRemaining()}`,
     variant: "default" as const,
-    message: `Expires in ${remainingDays} day${remainingDays !== 1 ? "s" : ""}`,
+    message: `Expires in ${formatRemaining()}`,
   };
 };
 
@@ -343,6 +359,8 @@ console.log(expiryDays)
       company_name: formData.company_name || "",
       piece_price: "",
       buying_price: "",
+      low_threshold: formData.low_threshold || "",
+      expired_date: formData.expired_date || "",
       price: "",
       stock: "",
       stock_carton: "",
@@ -366,6 +384,8 @@ console.log(expiryDays)
       piece_price: "",
       stock_carton: "",
       stock_in_unit: "",
+      low_threshold: "",
+      expired_date: "",
       buying_price: "",
       units_per_carton:"",
       price: "",
@@ -472,6 +492,8 @@ const { cartons, totalPieces } = calculateTotalPieces();
           stock: Number.parseInt(formData.stock) || totalPieces,
           department_id: formData.department,
           unit: formData.unit,
+          low_threshold: Number.parseInt(formData.low_threshold) || 0,
+          expired_date: formData.expired_date ,
           units_per_carton:Number.parseInt(formData.units_per_carton),
           stock_in_unit:Number.parseInt(formData.stock_in_unit) ,
           stock_carton: Number.parseInt(formData.stock_carton) || cartons ,
@@ -496,6 +518,8 @@ const { cartons, totalPieces } = calculateTotalPieces();
         buying_price: Number.parseFloat(formData.buying_price),
         price: Number.parseFloat(formData.piece_price),
         stock: Number.parseInt(formData.stock) || totalPieces,
+        low_threshold: Number.parseInt(formData.low_threshold) || 0,
+        expired_date: formData.expired_date ,
         department_id: formData.department,
         unit: formData.unit,
         ...(formData.company_name && {
@@ -545,6 +569,9 @@ const handleEdit = (medicine: GetMedicine) => {
       expire_date: medicine.expire_date
         ? medicine.expire_date.split("T")[0]
         : "",
+      low_threshold: medicine.low_threshold ? String(medicine.low_threshold) : "",
+      expired_date: medicine.expired_date ? String(medicine.expired_date) : "",
+      
       unit: (medicine.unit as MedicineUnit) || "Strip",
       TIN_number: medicine.TIN_number || "",
     });
@@ -588,29 +615,39 @@ const handleEdit = (medicine: GetMedicine) => {
     setUnitFormData({ id: "", code: "", name: "" });
   };
 
-  const getCategoryName = (categoryId: string) => {
-    return (
-      Units?.results.find((unit) => unit.id === categoryId)?.name || "Unknown"
-    );
-  };
 
-  const handleExport = () => {
-    const data = filteredMedicines.map((med) => ({
-      "Medicine Name": med.brand_name,
-      "Items Name": med.item_name || "",
-      Unit: getCategoryName(med.department.id.toString()),
-      "Company Name": med.company_name || "",
-      Batch: med.batch_no,
-      Price: med.price.toString(),
-      Stock: med.stock.toString(),
-      "Expiry Date": new Date(med.expire_date).toLocaleDateString(),
-      Status: getExpiryStatus(new Date(med.expire_date)).label,
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Medicines");
-    XLSX.writeFile(wb, "medicines.xlsx");
-  };
+const [triggerExport]= useLazyExportExcelQuery()
+const handleDownload = async (endpoint: string, baseFilename: string) => {
+  const blob = await triggerExport(endpoint).unwrap();
+        
+  if (!(blob instanceof Blob)) {
+    console.error("Expected Blob, got:", typeof(blob));
+    return;
+  }
+
+  const now = new Date();
+  const dateTime = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(now.getDate()).padStart(2, "0")}_${String(
+    now.getHours()
+  ).padStart(2, "0")}-${String(now.getMinutes()).padStart(2, "0")}-${String(
+    now.getSeconds()
+  ).padStart(2, "0")}`;
+
+  const filename = `${baseFilename}_${dateTime}.xlsx`;
+
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+};
+
+
   const handleUnitChange = (value: string) => {
     // Map "all" back to empty string so it's removed from URL
     setSelectedUnitType(value === "all" ? "" : value);
@@ -620,6 +657,9 @@ const handleEdit = (medicine: GetMedicine) => {
   return (
     <div className="min-h-screen bg-gradient-to-r from-background via-card to-background dark:from-background dark:via-card dark:to-background">
       {/* Header */}
+      <div className="fixed top-4 right-4 z-50">
+        <NavDropdown />
+      </div>
       <header className="border-b bg-gradient-to-r from-primary to-secondary shadow-md dark:from-primary dark:to-secondary">
         <div className="flex h-16 items-center justify-between px-6 w-full">
           <h1 className="text-lg md:text-2xl font-extrabold text-white tracking-wide">
@@ -735,7 +775,6 @@ const handleEdit = (medicine: GetMedicine) => {
                                   className="border-2 border-primary/30 focus:border-primary"
                                 />
                               </div>
-                    
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div className="space-y-2">
@@ -779,7 +818,7 @@ const handleEdit = (medicine: GetMedicine) => {
                                     <SelectValue placeholder="Select Dept" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    {Units?.results.map((category) => (
+                                    {UnitsSelection?.results.map((category) => (
                                       <SelectItem
                                         key={category.id}
                                         value={category.id.toString()}
@@ -791,7 +830,7 @@ const handleEdit = (medicine: GetMedicine) => {
                                 </Select>
                               </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                               <div className="space-y-2">
                                 <Label htmlFor="manufactureDate">
                                   Manufacture Date *
@@ -821,8 +860,9 @@ const handleEdit = (medicine: GetMedicine) => {
                                     className="w-auto p-0"
                                     align="start"
                                   >
-                                    <CalendarComponent
+                                    <Calendar
                                       mode="single"
+                                      captionLayout="dropdown"
                                       selected={
                                         formData.manufacture_date
                                           ? new Date(formData.manufacture_date)
@@ -871,8 +911,11 @@ const handleEdit = (medicine: GetMedicine) => {
                                     className="w-auto p-0"
                                     align="start"
                                   >
-                                    <CalendarComponent
+                                    <Calendar
                                       mode="single"
+                                      fromYear={2025}
+                                      toYear={2100}
+                                      captionLayout="dropdown"
                                       selected={
                                         formData.expire_date
                                           ? new Date(formData.expire_date)
@@ -892,13 +935,73 @@ const handleEdit = (medicine: GetMedicine) => {
                                   </PopoverContent>
                                 </Popover>
                               </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="manufactureDate">
+                                  Alert Date *
+                                </Label>
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      className={cn(
+                                        "w-full justify-start text-left font-normal border-2 border-primary/30 focus:border-primary",
+                                        !formData.expire_date &&
+                                          "text-muted-foreground"
+                                      )}
+                                    >
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {formData.expired_date ? (
+                                        format(
+                                          new Date(formData.expired_date),
+                                          "PPP"
+                                        )
+                                      ) : (
+                                        <span>Pick alert date</span>
+                                      )}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent
+                                    className="w-auto p-0"
+                                    align="start"
+                                  >
+                                    <Calendar
+                                      mode="single"
+                                      captionLayout="dropdown"
+                                      fromYear={2025}
+                                      toYear={2100}
+                                      selected={
+                                        formData.expired_date
+                                          ? new Date(formData.expired_date)
+                                          : undefined
+                                      }
+                                      onSelect={(date) =>
+                                        setFormData((prev) => ({
+                                          ...prev,
+                                          expired_date: date
+                                            ? format(date, "yyyy-MM-dd")
+                                            : "",
+                                        }))
+                                      }
+                                      disabled={(date) =>
+                                        date >
+                                        new Date(
+                                          formData.expire_date
+                                            ? new Date(formData.expire_date)
+                                            : new Date()
+                                        )
+                                      }
+                                      initialFocus
+                                    />
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
                               {/* stock in carton */}
                               <div className="space-y-2">
                                 <Label htmlFor="stock_in_unit">
-                                   {formData.unit} In Carton
+                                  Stock In Carton
                                 </Label>
                                 <Input
                                   id="stock_in_unit"
@@ -921,14 +1024,17 @@ const handleEdit = (medicine: GetMedicine) => {
                                 />
                               </div>
                               {/* stock per carton */}
-                               <div className="space-y-2">
+                              <div className="space-y-2">
                                 <Label htmlFor="units per carton">
-                                  {formData.unit}  per Carton
+                                  {formData.unit} per Carton
                                 </Label>
                                 <Input
+                                  min={0}
                                   id="units_per_carton"
                                   type="number"
-                                  value={Number.parseInt(formData.units_per_carton)}
+                                  value={Number.parseInt(
+                                    formData.units_per_carton
+                                  )}
                                   onChange={(e) =>
                                     setFormData((prev) => ({
                                       ...prev,
@@ -947,7 +1053,11 @@ const handleEdit = (medicine: GetMedicine) => {
                                 <Input
                                   id="stockQuantity"
                                   type="number"
-                                  value={Number.parseInt(formData.stock_in_unit)}
+                                  min={0}
+                                  placeholder="0"
+                                  value={Number.parseInt(
+                                    formData.stock_in_unit
+                                  )}
                                   onChange={(e) =>
                                     setFormData((prev) => ({
                                       ...prev,
@@ -955,7 +1065,27 @@ const handleEdit = (medicine: GetMedicine) => {
                                     }))
                                   }
                                   className="border-2 border-primary/30 focus:border-primary"
-                                 
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="stockQuantity">
+                                  Low Stock no
+                                </Label>
+                                <Input
+                                  id="lowstockThreshold"
+                                  type="number"
+                                  min={0}
+                                  value={Number.parseInt(
+                                    formData.low_threshold
+                                  )}
+                                  onChange={(e) =>
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      low_threshold: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="0"
+                                  className="border-2 border-primary/30 focus:border-primary"
                                 />
                               </div>
                             </div>
@@ -1436,7 +1566,15 @@ const handleEdit = (medicine: GetMedicine) => {
                     </form>
                   </DialogContent>
                 </Dialog>
-                <Button onClick={handleExport} variant="outline">
+                <Button
+                  onClick={() =>
+                    handleDownload(
+                      "/pharmacy/medicines/export-excel/",
+                      "medicines.xlsx"
+                    )
+                  }
+                  variant="outline"
+                >
                   <Download className="h-4 w-4 mr-2" />
                   Export to Excel
                 </Button>
@@ -1450,7 +1588,7 @@ const handleEdit = (medicine: GetMedicine) => {
       <main className="p-8 max-w-8xl mx-auto">
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-6 mb-8">
-              <div className="relative flex-1">
+          <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
             <Input
               placeholder="Search by Batch Number..."
@@ -1463,20 +1601,19 @@ const handleEdit = (medicine: GetMedicine) => {
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
             <Input
               placeholder="Search medicines..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
               className="pl-12 h-12 border-2 border-primary/30 focus:border-primary"
             />
           </div>
 
-      
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
             <SelectTrigger className="w-full sm:w-56 h-12 border-2 border-primary/30 focus:border-primary">
               <SelectValue placeholder="All Units" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Units</SelectItem>
-              {Units?.results.map((category) => (
+              {UnitsSelection?.results.map((category) => (
                 <SelectItem key={category.id} value={category.id.toString()}>
                   {category.name}
                 </SelectItem>
@@ -1501,7 +1638,9 @@ const handleEdit = (medicine: GetMedicine) => {
         {/* Alerts */}
         <div className="space-y-6 mb-8">
           {meds?.results &&
-            meds.results.filter((med) => med.stock < 10).length > 0 && (
+            meds.results.filter(
+              (med) => med.total_stock_units < med.low_threshold
+            ).length > 0 && (
               <Alert className="border-destructive/20 bg-destructive/5 dark:border-destructive/40 dark:bg-destructive/10">
                 <AlertTriangle className="h-5 w-5 text-destructive" />
                 <AlertDescription className="text-destructive dark:text-destructive">
@@ -1520,13 +1659,13 @@ const handleEdit = (medicine: GetMedicine) => {
               return expireDate <= thirtyDaysFromNow;
             }).length > 0 && (
               <Alert className="border-warning/20 bg-warning/5 dark:border-warning/40 dark:bg-warning/10">
-                <Calendar className="h-5 w-5 text-warning" />
+                <Calendar1Icon className="h-5 w-5 text-warning" />
                 <AlertDescription className="text-warning dark:text-warning">
                   {
                     meds.results.filter((med) => {
                       const today = new Date();
                       const thirtyDaysFromNow = new Date(
-                        today.getTime() + 30 * 24 * 60 * 60 * 1000
+                        today.getTime() +30 * 24 * 60 * 60 * 1000
                       );
                       const expireDate = new Date(med.expire_date);
                       return expireDate <= thirtyDaysFromNow;
@@ -1553,30 +1692,40 @@ const handleEdit = (medicine: GetMedicine) => {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="border-border"><TableHead className="text-foreground">Image</TableHead>
+                  <TableRow className="border-border">
+                    <TableHead className="text-foreground">Image</TableHead>
                     <TableHead className="text-foreground">Medicine</TableHead>
-                    
-                    <TableHead className="text-foreground">Code No</TableHead>
+
+                    {canEdit && (
+                      <TableHead className="text-foreground">Code No</TableHead>
+                    )}
                     <TableHead className="text-foreground">
                       Department
                     </TableHead>
                     <TableHead className="text-foreground">Unit Type</TableHead>
-                    <TableHead className="text-foreground">
-                      Company Name
-                    </TableHead>
+                    {canEdit && (
+                      <TableHead className="text-foreground">
+                        Company Name
+                      </TableHead>
+                    )}
                     <TableHead className="text-foreground">Batch</TableHead>
-                    <TableHead className="text-foreground">
-                      Buying Price
-                    </TableHead>
+                    {canEdit && (
+                      <>
+                        <TableHead className="text-foreground">
+                          Buying Price
+                        </TableHead>
+                        <TableHead className="text-foreground">
+                          Profit/Unit
+                        </TableHead>
+                        <TableHead className="text-foreground">
+                          Total Profit
+                        </TableHead>
+                      </>
+                    )}
                     <TableHead className="text-foreground">
                       Selling Price
                     </TableHead>
-                    <TableHead className="text-foreground">
-                      Profit/Unit
-                    </TableHead>
-                    <TableHead className="text-foreground">
-                      Total Profit
-                    </TableHead>
+
                     <TableHead className="text-foreground">Stock</TableHead>
                     <TableHead className="text-foreground">Expiry</TableHead>
                     <TableHead className="text-foreground">Status</TableHead>
@@ -1586,14 +1735,19 @@ const handleEdit = (medicine: GetMedicine) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMedicines.map((medicine) => {
-                    const stockStatus = getStockStatus(medicine.total_stock_units);
+                  {meds?.results.map((medicine) => {
+                    const stockStatus = getStockStatus(
+                      medicine.total_stock_units,
+                      medicine.low_threshold
+                    );
                     const expiryStatus = getExpiryStatus(
                       new Date(medicine.expire_date)
                     );
 
                     return (
-                      <TableRow key={medicine.id} className="hover:bg-muted/50"> <TableCell>
+                      <TableRow key={medicine.id} className="hover:bg-muted/50">
+                        {" "}
+                        <TableCell>
                           {medicine.attachment ? (
                             <img
                               src={medicine.attachment || "/placeholder.svg"}
@@ -1612,48 +1766,58 @@ const handleEdit = (medicine: GetMedicine) => {
                               {medicine.item_name}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                             Brand: {medicine.brand_name}
+                              Brand: {medicine.brand_name}
                             </div>
                           </div>
                         </TableCell>
-                       
-                        <TableCell className="font-mono text-sm text-foreground">
-                          {medicine.department?.code || "N/A"}
-                        </TableCell>
+                        {canEdit && (
+                          <TableCell className="font-mono text-sm text-foreground">
+                            {medicine.department?.code || "N/A"}
+                          </TableCell>
+                        )}
                         <TableCell className="text-foreground">
                           {medicine.department?.name || "N/A"}
                         </TableCell>
                         <TableCell className="text-foreground">
                           {medicine.unit || "N/A"}
                         </TableCell>
-                        <TableCell className="text-foreground">
-                          {medicine.company_name || "N/A"}
-                        </TableCell>
-
+                        {canEdit && (
+                          <TableCell className="text-foreground">
+                            {medicine.company_name || "N/A"}
+                          </TableCell>
+                        )}
                         <TableCell className="font-mono text-sm text-muted-foreground">
                           {medicine.batch_no}
                         </TableCell>
-                        <TableCell className="font-semibold text-foreground">
-                          Birr{" "}
-                          {Number.parseFloat(
-                            medicine.buying_price || "0"
-                          ).toFixed(2)}
-                        </TableCell>
+                        {canEdit && (
+                          <>
+                            <TableCell className="font-semibold text-foreground">
+                              Birr{" "}
+                              {Number.parseFloat(
+                                medicine.buying_price || "0"
+                              ).toFixed(2)}
+                            </TableCell>
+                            <TableCell className="font-semibold text-green-600 dark:text-green-400">
+                              Birr{" "}
+                              {medicine.profit_per_item?.toFixed(2) || "0.00"}
+                            </TableCell>
+                            <TableCell className="font-semibold text-blue-600 dark:text-blue-400">
+                              Birr {medicine.total_profit?.toFixed(2) || "0.00"}
+                            </TableCell>
+                          </>
+                        )}
                         <TableCell className="font-semibold text-foreground">
                           Birr {Number.parseFloat(medicine.price).toFixed(2)}
-                        </TableCell>
-                        <TableCell className="font-semibold text-green-600 dark:text-green-400">
-                          Birr {medicine.profit_per_item?.toFixed(2) || "0.00"}
-                        </TableCell>
-                        <TableCell className="font-semibold text-blue-600 dark:text-blue-400">
-                          Birr {medicine.total_profit?.toFixed(2) || "0.00"}
                         </TableCell>
                         <TableCell>
                           <Badge
                             variant={stockStatus.variant}
-                            className="font-medium"
+                            className="font-medium space-x-1"
                           >
-                            {medicine.total_stock_units} units
+                            <span>{stockStatus.label}</span>
+                            <span>
+                              ({medicine.total_stock_units} {medicine.unit})
+                            </span>
                           </Badge>
                         </TableCell>
                         <TableCell>

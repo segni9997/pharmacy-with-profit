@@ -25,15 +25,15 @@ export default function NotFound() {
   
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-50 flex items-center justify-center px-4 py-12 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-primary via-white to-primary flex items-center justify-center px-4 py-12 relative overflow-hidden">
       {/* Decorative background elements */}
       <motion.div
-        className="absolute top-10 left-10 w-32 h-32 bg-green-100 rounded-full opacity-30 blur-3xl"
+        className="absolute top-10 left-10 w-32 h-32 bg-secondary rounded-full opacity-30 blur-3xl"
         animate={{ scale: [1, 1.2, 1] }}
         transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY }}
       />
       <motion.div
-        className="absolute bottom-20 right-10 w-40 h-40 bg-green-200 rounded-full opacity-20 blur-3xl"
+        className="absolute bottom-20 right-10 w-40 h-40 bg-secondary rounded-full opacity-20 blur-3xl"
         animate={{ scale: [1.2, 1, 1.2] }}
         transition={{ duration: 10, repeat: Number.POSITIVE_INFINITY }}
       />
@@ -51,7 +51,7 @@ export default function NotFound() {
             animate={{ rotate: [0, 5, -5, 0] }}
             transition={{ duration: 3, repeat: Number.POSITIVE_INFINITY }}
           >
-            <div className="text-9xl font-bold bg-gradient-to-r from-green-600 to-green-400 bg-clip-text text-transparent">
+            <div className="text-9xl font-bold bg-gradient-to-r from-secondary to-secondary bg-clip-text text-transparent">
               404
             </div>
           </motion.div>
@@ -66,7 +66,7 @@ export default function NotFound() {
             className="relative"
             animate="animate"
           >
-            <div className="w-24 h-24 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-lg">
+            <div className="w-24 h-24 bg-gradient-to-br from-primary0 to-secondary rounded-full flex items-center justify-center shadow-lg">
               <svg
                 className="w-12 h-12 text-white"
                 fill="currentColor"
@@ -100,7 +100,7 @@ export default function NotFound() {
         >
           <Link to="/">
             <motion.button
-              className="px-8 py-3 bg-gradient-to-r from-green-600 to-green-500 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-shadow"
+              className="px-8 py-3 bg-gradient-to-r from-secondary to-primary0 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-shadow"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -113,7 +113,7 @@ export default function NotFound() {
 
           <Link to="/shop">
             <motion.button
-              className="px-8 py-3 border-2 border-green-600 text-green-600 font-semibold rounded-full hover:bg-green-50 transition-colors"
+              className="px-8 py-3 border-2 border-secondary text-secondary font-semibold rounded-full hover:bg-primary transition-colors"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
@@ -138,11 +138,11 @@ export default function NotFound() {
           ].map((link, index) => (
             <Link key={index} to={link.to}>
               <motion.div
-                className="p-4 bg-white rounded-lg border border-green-100 hover:border-green-300 hover:shadow-md transition-all cursor-pointer text-center"
+                className="p-4 bg-white rounded-lg border border-secondary hover:border-secondary hover:shadow-md transition-all cursor-pointer text-center"
                 whileHover={{ y: -4 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <link.icon className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                <link.icon className="w-6 h-6 text-secondary mx-auto mb-2" />
                 <p className="text-sm font-medium text-gray-700">
                   {link.label}
                 </p>
@@ -159,7 +159,7 @@ export default function NotFound() {
           {[0, 1, 2].map((i) => (
             <motion.div
               key={i}
-              className="w-3 h-3 bg-green-400 rounded-full"
+              className="w-3 h-3 bg-secondary rounded-full"
               animate={{ scale: [1, 1.5, 1] }}
               transition={{
                 duration: 2,

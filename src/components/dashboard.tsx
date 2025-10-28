@@ -18,11 +18,16 @@ import {
   DollarSign,
   TrendingUp,
   User,
+  Download,
+  AlertCircle,
+  BellDot,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useGetOverviewQuery } from "@/store/dashboardApi";
 import type { OverviewData } from "@/lib/types";
 import { useWhoamiQuery } from "@/store/userApi";
+import { NavDropdown } from "./navDropDown";
+import * as XLSX from "xlsx";
 
 export function Dashboard() {
   // const [user, setUser] = useState<DecodedToken | null>(null);
@@ -35,17 +40,17 @@ export function Dashboard() {
     (error
       ? {
           stock: {
-            total_medicines: 3,
+            total_medicines: 0,
             low_stock: 0,
             stock_out: 0,
             expired: 0,
             near_expiry: 0,
           },
           sales: {
-            today_sales_qty: 7,
-            total_sales_qty: 7,
-            revenue_today: 42.5,
-            total_revenue: 42.5,
+            today_sales_qty: 0,
+            total_sales_qty: 0,
+            revenue_today: 0.0,
+            total_revenue: 0.0,
           },
           profit: {
             today_profit: 0,
@@ -54,22 +59,22 @@ export function Dashboard() {
           top_selling: [
             {
               medicine__brand_name: "Almendazol",
-              total_sold: 5,
+              total_sold: 0,
             },
             {
               medicine__brand_name: "Tayfoid",
-              total_sold: 2,
+              total_sold: 0,
             },
           ],
           departments: [
             {
               department__name: "ANTI BACTERIA DRUG",
-              total: 1,
+              total: 0,
               total_profit: 0,
             },
             {
               department__name: "ANTI BIOTIC DRUG",
-              total: 2,
+              total: 0,
               total_profit: 0,
             },
           ],
@@ -79,6 +84,66 @@ export function Dashboard() {
   const handleLogout = () => {
     localStorage.clear();
     window.location.href = "/";
+  };
+
+  const handleExport = () => {
+    if (!overviewData) {
+      alert("Dashboard data is not loaded yet.");
+      return;
+    }
+
+    const wb = XLSX.utils.book_new();
+
+    // Overview Summary sheet
+    const overviewSummary = [
+      { Metric: "Today's Revenue", Value: overviewData.sales.revenue_today.toFixed(2) },
+      { Metric: "Today's Sales Quantity", Value: overviewData.sales.today_sales_qty },
+      { Metric: "Total Revenue", Value: overviewData.sales.total_revenue.toFixed(2) },
+      { Metric: "Total Sales Quantity", Value: overviewData.sales.total_sales_qty },
+      { Metric: "Today's Profit", Value: overviewData.profit.today_profit.toFixed(2) },
+      { Metric: "Total Profit", Value: overviewData.profit.total_profit.toFixed(2) },
+      { Metric: "Total Medicines", Value: overviewData.stock.total_medicines },
+      { Metric: "Low Stock Items", Value: overviewData.stock.low_stock },
+      { Metric: "Near Expiry Items", Value: overviewData.stock.near_expiry },
+      { Metric: "Expired Items", Value: overviewData.stock.expired },
+    ];
+    const wsOverview = XLSX.utils.json_to_sheet(overviewSummary);
+    XLSX.utils.book_append_sheet(wb, wsOverview, "Overview Summary");
+
+    // Top Selling Medicines sheet
+    const topSellingData = overviewData.top_selling.map((item, index) => ({
+      Rank: index + 1,
+      Medicine: item.medicine__brand_name,
+      Units_Sold: item.total_sold,
+    }));
+    const wsTopSelling = XLSX.utils.json_to_sheet(topSellingData);
+    XLSX.utils.book_append_sheet(wb, wsTopSelling, "Top Selling Medicines");
+
+    // Department Overview sheet
+    const departmentData = overviewData.departments.map((dept) => ({
+      Department: dept.department__name,
+      Total_Items: dept.total,
+      Total_Profit: dept.total_profit,
+    }));
+    const wsDepartments = XLSX.utils.json_to_sheet(departmentData);
+    XLSX.utils.book_append_sheet(wb, wsDepartments, "Department Overview");
+
+    // Function to convert string to array buffer
+    const s2ab = (s: string) => {
+      const buf = new ArrayBuffer(s.length);
+      const view = new Uint8Array(buf);
+      for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
+      return buf;
+    };
+
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "binary" });
+    const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "dashboard_overview.xlsx";
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   if (isLoading || !overviewData) {
@@ -93,17 +158,27 @@ export function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted">
+      <div className="fixed top-4 right-4 z-50">
+        <NavDropdown />
+      </div>
       <header className="border-b bg-card shadow-sm">
         <div className="flex h-16 items-center justify-between px-6">
           <div className="flex items-center gap-4">
             <h1 className="md:text-3xl text-md font-bold md:font-extrabold text-primary tracking-wide">
-              NATI PHARMACY
+              Nati pharma Import
             </h1>
           </div>
           <div className="flex items-center gap-6">
             <span className="hidden md:flex text-base text-foreground font-semibold">
               Welcome, {user?.username || "User"}
             </span>
+            {user?.role === "admin" && (
+                   <Link to="/alert"
+                className="border-primary rounded-full p-2 text-primary hover:bg-primary/10 bg-transparent"
+            >
+             <BellDot className="animate animate-pulse duration-initial"/>
+              </Link>
+            )}
             <Link to="/profile">
               <Button
                 variant="outline"
@@ -325,8 +400,6 @@ export function Dashboard() {
                   </CardContent>
                 </Card>
               </Link>
-
-          
             </>
           )}
         </div>

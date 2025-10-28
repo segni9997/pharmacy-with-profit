@@ -113,31 +113,31 @@ export function NavDropdown() {
                     stiffness: 200,
                     damping: 20,
                   }}
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center"
                 >
                   <Link to={item.to}>
                     <motion.button
                       onClick={() => setIsOpen(false)}
-                      className="w-12 h-12 rounded-full border-2 border-primary/80 bg-background shadow-md hover:shadow-lg hover:border-accent transition-all flex items-center justify-center"
+                      className="w-12 h-12 rounded-full border-2 border-primary/80 bg-background shadow-md hover:shadow-lg hover:border-accent transition-all flex items-center justify-center relative"
                       whileHover={{ scale: 1.15 }}
                       whileTap={{ scale: 0.9 }}
                     >
                       <Icon className="w-5 h-5 text-primary" />
+
+                      {/* Label on hover */}
+                      <motion.span
+                        initial={{ opacity: 0, y: -10 }}
+                        whileHover={{ opacity: 1, y: -20 }}
+                        transition={{ duration: 0.2 }}
+                        className="absolute -top-6 whitespace-nowrap  text-white  bg-black text-xs px-2 py-1 rounded-md pointer-events-none"
+                      >
+                        {item.label}
+                      </motion.span>
                     </motion.button>
                   </Link>
                 </motion.div>
               );
             })}
-
-          {isOpen && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsOpen(false)}
-              className="fixed inset-0 pointer-events-auto"
-            />
-          )}
         </AnimatePresence>
       </motion.div>
     </div>

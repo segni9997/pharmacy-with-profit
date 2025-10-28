@@ -31,6 +31,7 @@ import {
   ShoppingCart,
   Receipt,
   Package,
+  Download,
 } from "lucide-react";
 import {
   Table,
@@ -47,6 +48,8 @@ import { toast } from "sonner";
 import { useQueryParamsState } from "@/hooks/useQueryParamsState";
 import { Pagination } from "@/components/ui/pagination";
 import { useGetSettingsQuery } from "@/store/settingsApi";
+import { NavDropdown } from "./navDropDown";
+import * as XLSX from "xlsx";
 
 interface CartItem {
   medicine: GetMedicine;
@@ -370,8 +373,36 @@ export function POSSystem() {
     );
   };
 
+  const handleExport = () => {
+    if (!medicines?.results) return;
+
+    const data = medicines.results
+      .filter(
+        (medicine) =>
+          medicine.stock_carton > 0 || medicine.total_stock_units > 0
+      )
+      .map((medicine) => ({
+        "Item Name": medicine.item_name,
+        "Batch No": medicine.batch_no,
+        Department: getCategoryName(medicine.department?.id),
+        "Unit Type": medicine.unit || "N/A",
+        Price: `Birr ${medicine.price}`,
+        Cartons: medicine.stock_carton,
+        "Units per Carton": medicine.units_per_carton,
+        "Stock in Units": medicine.total_stock_units,
+      }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Medicines");
+    XLSX.writeFile(wb, "pos_medicines.xlsx");
+  };
+
   return (
     <div className="min-h-screen bg-background">
+        <div className="fixed top-4 right-4 z-50">
+              <NavDropdown />
+            </div>
       {/* Header */}
       <header className="border-b bg-card">
         <div className="flex h-16 items-center justify-between px-6">
@@ -390,6 +421,15 @@ export function POSSystem() {
               onClick={() => navigate("/sold-medicines")}
             >
               Sold Medicine
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              disabled={!medicines?.results || medicines.results.length === 0}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export Medicines
             </Button>
           </div>
         </div>

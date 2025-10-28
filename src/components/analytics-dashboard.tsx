@@ -25,10 +25,9 @@ import {
   Users,
   Calendar,
   LogOut,
-  Download,
 } from "lucide-react";
 import { jwtDecode } from "jwt-decode";
-import * as XLSX from "xlsx";
+// import * as XLSX from "xlsx";
 
 import {
   Bar,
@@ -48,6 +47,7 @@ import {
   useGetAnalyticsQuery,
   useGetProfitSummaryQuery,
 } from "@/store/dashboardApi";
+import { NavDropdown } from "./navDropDown";
 
 interface DecodedToken {
   username?: string;
@@ -92,149 +92,149 @@ export function AnalyticsDashboard() {
     navigate("/");
   };
 
-  const handleExport = () => {
-    if (!analyticsData) {
-      alert("Analytics data is not loaded yet.");
-      return;
-    }
+  // const handleExport = () => {
+  //   if (!analyticsData) {
+  //     alert("Analytics data is not loaded yet.");
+  //     return;
+  //   }
 
-    const wb = XLSX.utils.book_new();
+  //   const wb = XLSX.utils.book_new();
 
-    // Summary sheet
-    const summaryData = [
-      {
-        Metric: "Total Revenue",
-        Value: analyticsData.summary.total_revenue.toFixed(2),
-      },
-      {
-        Metric: "Total Transactions",
-        Value: analyticsData.summary.total_transactions,
-      },
-      {
-        Metric: "Avg. Order Value",
-        Value: analyticsData.summary.avg_order_value.toFixed(2),
-      },
-      {
-        Metric: "Medicine Value",
-        Value: analyticsData.summary.inventory_value.toFixed(2),
-      },
-    ];
-    const wsSummary = XLSX.utils.json_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
+  //   // Summary sheet
+  //   const summaryData = [
+  //     {
+  //       Metric: "Total Revenue",
+  //       Value: analyticsData.summary.total_revenue.toFixed(2),
+  //     },
+  //     {
+  //       Metric: "Total Transactions",
+  //       Value: analyticsData.summary.total_transactions,
+  //     },
+  //     {
+  //       Metric: "Avg. Order Value",
+  //       Value: analyticsData.summary.avg_order_value.toFixed(2),
+  //     },
+  //     {
+  //       Metric: "Medicine Value",
+  //       Value: analyticsData.summary.inventory_value.toFixed(2),
+  //     },
+  //   ];
+  //   const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+  //   XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
 
-    // Sales Trend sheet
-    const wsSalesTrend = XLSX.utils.json_to_sheet(analyticsData.sales_trend);
-    XLSX.utils.book_append_sheet(wb, wsSalesTrend, "Sales Trend");
+  //   // Sales Trend sheet
+  //   const wsSalesTrend = XLSX.utils.json_to_sheet(analyticsData.sales_trend);
+  //   XLSX.utils.book_append_sheet(wb, wsSalesTrend, "Sales Trend");
 
-    // Inventory by Category sheet
-    const wsInventoryCategory = XLSX.utils.json_to_sheet(
-      analyticsData.inventory_by_category
-    );
-    XLSX.utils.book_append_sheet(
-      wb,
-      wsInventoryCategory,
-      "Medicine by Category"
-    );
+  //   // Inventory by Category sheet
+  //   const wsInventoryCategory = XLSX.utils.json_to_sheet(
+  //     analyticsData.inventory_by_category
+  //   );
+  //   XLSX.utils.book_append_sheet(
+  //     wb,
+  //     wsInventoryCategory,
+  //     "Medicine by Category"
+  //   );
 
-    // Top Selling Products sheet
-    const wsTopSelling = XLSX.utils.json_to_sheet(analyticsData.top_selling);
-    XLSX.utils.book_append_sheet(wb, wsTopSelling, "Top Selling");
+  //   // Top Selling Products sheet
+  //   const wsTopSelling = XLSX.utils.json_to_sheet(analyticsData.top_selling);
+  //   XLSX.utils.book_append_sheet(wb, wsTopSelling, "Top Selling");
 
-    // Stock Alerts sheet (combine all alerts)
-    const stockAlerts = [
-      ...analyticsData.stock_alerts.low_stock.map((item: any) => ({
-        ...item,
-        alert_type: "Low Stock",
-      })),
-      ...analyticsData.stock_alerts.stock_out.map((item: any) => ({
-        ...item,
-        alert_type: "Stock Out",
-      })),
-      ...analyticsData.stock_alerts.near_expiry.map((item: any) => ({
-        ...item,
-        alert_type: "Near Expiry",
-      })),
-    ];
-    const wsStockAlerts = XLSX.utils.json_to_sheet(stockAlerts);
-    XLSX.utils.book_append_sheet(wb, wsStockAlerts, "Stock Alerts");
+  //   // Stock Alerts sheet (combine all alerts)
+  //   const stockAlerts = [
+  //     ...analyticsData.stock_alerts.low_stock.map((item: any) => ({
+  //       ...item,
+  //       alert_type: "Low Stock",
+  //     })),
+  //     ...analyticsData.stock_alerts.stock_out.map((item: any) => ({
+  //       ...item,
+  //       alert_type: "Stock Out",
+  //     })),
+  //     ...analyticsData.stock_alerts.near_expiry.map((item: any) => ({
+  //       ...item,
+  //       alert_type: "Near Expiry",
+  //     })),
+  //   ];
+  //   const wsStockAlerts = XLSX.utils.json_to_sheet(stockAlerts);
+  //   XLSX.utils.book_append_sheet(wb, wsStockAlerts, "Stock Alerts");
 
-    // Weekly Summary sheet
-    const weeklySummaryData = [
-      {
-        Metric: "Total Sales",
-        Value: analyticsData.weekly_summary.week_sales.toFixed(2),
-      },
-      {
-        Metric: "Transactions",
-        Value: analyticsData.weekly_summary.transactions,
-      },
-      // { Metric: "New Customers", Value: analyticsData.weekly_summary.new_customers },
-    ];
-    const wsWeeklySummary = XLSX.utils.json_to_sheet(weeklySummaryData);
-    XLSX.utils.book_append_sheet(wb, wsWeeklySummary, "Weekly Summary");
+  //   // Weekly Summary sheet
+  //   const weeklySummaryData = [
+  //     {
+  //       Metric: "Total Sales",
+  //       Value: analyticsData.weekly_summary.week_sales.toFixed(2),
+  //     },
+  //     {
+  //       Metric: "Transactions",
+  //       Value: analyticsData.weekly_summary.transactions,
+  //     },
+  //     // { Metric: "New Customers", Value: analyticsData.weekly_summary.new_customers },
+  //   ];
+  //   const wsWeeklySummary = XLSX.utils.json_to_sheet(weeklySummaryData);
+  //   XLSX.utils.book_append_sheet(wb, wsWeeklySummary, "Weekly Summary");
 
-    // Inventory Health sheet
-    const inventoryHealthData = [
-      {
-        Metric: "Total Products",
-        Value: analyticsData.inventory_health.total_products,
-      },
-      { Metric: "Low Stock", Value: analyticsData.inventory_health.low_stock },
-      {
-        Metric: "Near Expiry",
-        Value: analyticsData.inventory_health.near_expiry,
-      },
-      {
-        Metric: "Out of Stock",
-        Value: analyticsData.inventory_health.stock_out,
-      },
-    ];
-    const wsInventoryHealth = XLSX.utils.json_to_sheet(inventoryHealthData);
-    XLSX.utils.book_append_sheet(wb, wsInventoryHealth, "Medicine Health");
+  //   // Inventory Health sheet
+  //   const inventoryHealthData = [
+  //     {
+  //       Metric: "Total Products",
+  //       Value: analyticsData.inventory_health.total_products,
+  //     },
+  //     { Metric: "Low Stock", Value: analyticsData.inventory_health.low_stock },
+  //     {
+  //       Metric: "Near Expiry",
+  //       Value: analyticsData.inventory_health.near_expiry,
+  //     },
+  //     {
+  //       Metric: "Out of Stock",
+  //       Value: analyticsData.inventory_health.stock_out,
+  //     },
+  //   ];
+  //   const wsInventoryHealth = XLSX.utils.json_to_sheet(inventoryHealthData);
+  //   XLSX.utils.book_append_sheet(wb, wsInventoryHealth, "Medicine Health");
 
-    // Performance Metrics sheet
-    const performanceMetricsData = [
-      // {
-      //   Metric: "Profit Margin",
-      //   Value: analyticsData.performance_metrics.profit_margin.toFixed(2) + "%",
-      // },
-      {
-        Metric: "Medicine Turnover",
-        Value: analyticsData.performance_metrics.inventory_turnover.toFixed(2),
-      },
-      // {
-      //   Metric: "Customer Satisfaction",
-      //   Value:
-      //     analyticsData.performance_metrics.customer_satisfaction.toFixed(1) +
-      //     "/5",
-      // },
-    ];
-    const wsPerformanceMetrics = XLSX.utils.json_to_sheet(
-      performanceMetricsData
-    );
-    XLSX.utils.book_append_sheet(
-      wb,
-      wsPerformanceMetrics,
-      "Performance Metrics"
-    );
+  //   // Performance Metrics sheet
+  //   const performanceMetricsData = [
+  //     // {
+  //     //   Metric: "Profit Margin",
+  //     //   Value: analyticsData.performance_metrics.profit_margin.toFixed(2) + "%",
+  //     // },
+  //     {
+  //       Metric: "Medicine Turnover",
+  //       Value: analyticsData.performance_metrics.inventory_turnover.toFixed(2),
+  //     },
+  //     // {
+  //     //   Metric: "Customer Satisfaction",
+  //     //   Value:
+  //     //     analyticsData.performance_metrics.customer_satisfaction.toFixed(1) +
+  //     //     "/5",
+  //     // },
+  //   ];
+  //   const wsPerformanceMetrics = XLSX.utils.json_to_sheet(
+  //     performanceMetricsData
+  //   );
+  //   XLSX.utils.book_append_sheet(
+  //     wb,
+  //     wsPerformanceMetrics,
+  //     "Performance Metrics"
+  //   );
 
-    // Function to convert string to array buffer
-    const s2ab = (s: string) => {
-      const buf = new ArrayBuffer(s.length);
-      const view = new Uint8Array(buf);
-      for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
-      return buf;
-    };
+  //   // Function to convert string to array buffer
+  //   const s2ab = (s: string) => {
+  //     const buf = new ArrayBuffer(s.length);
+  //     const view = new Uint8Array(buf);
+  //     for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
+  //     return buf;
+  //   };
 
-    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "binary" });
-    const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "analytics_data.xlsx";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  //   const wbout = XLSX.write(wb, { bookType: "xlsx", type: "binary" });
+  //   const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+  //   const url = URL.createObjectURL(blob);
+  //   const a = document.createElement("a");
+  //   a.href = url;
+  //   a.download = "analytics_data.xlsx";
+  //   a.click();
+  //   URL.revokeObjectURL(url);
+  // };
 
   if (isLoading || !analyticsData) {
     return (
@@ -248,6 +248,9 @@ export function AnalyticsDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
+        <div className="fixed top-4 right-4 z-50">
+              <NavDropdown />
+            </div>
       <header className="border-b bg-background shadow-sm">
         <div className="flex h-16 items-center justify-between px-6">
           <div className="flex items-center gap-4">
@@ -270,14 +273,14 @@ export function AnalyticsDashboard() {
             <Badge variant="secondary" className="hidden md:flex text-xs">
               {user?.role?.toUpperCase()}
             </Badge>
-            <Button
+            {/* <Button
               variant="outline"
               size="sm"
               onClick={handleExport}
               className="border-primary text-primary hover:bg-primary/10 bg-transparent"
             >
               <Download className="h-5 w-5 mr-2" />
-            </Button>
+            </Button> */}
             <Button
               variant="outline"
               size="sm"

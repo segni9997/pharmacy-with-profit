@@ -30,6 +30,7 @@ import {
   Calendar,
   TrendingUp,
   Receipt,
+  Download,
 } from "lucide-react";
 import type { Sale } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
@@ -41,6 +42,8 @@ import {
 } from "@/store/saleApi";
 import { useNavigate } from "react-router-dom";
 import { Pagination } from "@/components/ui/pagination";
+import { NavDropdown } from "@/components/navDropDown";
+import { useLazyExportExcelQuery } from "@/store/exportApi";
 
 type FilterType = "date" | "week" | "month";
 
@@ -100,6 +103,8 @@ export default function SalesDetailPage() {
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [activeExpandedId, setActiveExpandedId] = useState<string | null>(null);
 
+  const [exportExcel] = useLazyExportExcelQuery();
+
   const {
     currentPage,
     setCurrentPage,
@@ -158,6 +163,15 @@ export default function SalesDetailPage() {
     setActiveExpandedId(null);
   };
 
+  const handleDownload = async () => {
+    try {
+      await exportExcel("/pharmacy/sales/export-excel/");
+      toast.success("Sales data exported successfully");
+    } catch (error) {
+      toast.error("Failed to export sales data");
+    }
+  };
+
   const toggleExpanded = (saleId: string) => {
     setActiveExpandedId((prev) => (prev === saleId ? null : saleId));
   };
@@ -178,6 +192,7 @@ export default function SalesDetailPage() {
   if (error) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5 p-6 md:p-8">
+
         <div className="max-w-7xl mx-auto">
           <Card className="bg-destructive/10 border-destructive/20">
             <CardContent className="pt-6 flex items-center gap-3">
@@ -199,15 +214,30 @@ export default function SalesDetailPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-background via-background to-accent/5 p-6 md:p-8">
+        <div className="fixed top-4 right-4 z-50">
+              <NavDropdown />
+            </div>
       <div className="max-w-8xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground/90 mb-2">
-            Sales Details
-          </h1>
-          <p className="text-muted-foreground">
-            Track your sales performance by date, week, or month
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-4xl font-bold text-foreground/90 mb-2">
+                Sales Details
+              </h1>
+              <p className="text-muted-foreground">
+                Track your sales performance by date, week, or month
+              </p>
+            </div>
+            <Button
+              onClick={handleDownload}
+              variant="outline"
+              className="gap-2 shadow-md hover:shadow-lg transition-all"
+            >
+              <Download className="w-4 h-4" />
+              Export 
+            </Button>
+          </div>
         </div>
 
         {/* Filters Card */}
