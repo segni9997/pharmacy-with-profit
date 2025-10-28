@@ -1,4 +1,3 @@
-"use client";
 
 import { Button } from "./ui/button";
 import {
@@ -18,8 +17,8 @@ import {
   DollarSign,
   TrendingUp,
   User,
-  Download,
-  AlertCircle,
+  // Download,
+  // AlertCircle,
   BellDot,
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -27,7 +26,7 @@ import { useGetOverviewQuery } from "@/store/dashboardApi";
 import type { OverviewData } from "@/lib/types";
 import { useWhoamiQuery } from "@/store/userApi";
 import { NavDropdown } from "./navDropDown";
-import * as XLSX from "xlsx";
+// import * as XLSX from "xlsx";
 
 export function Dashboard() {
   // const [user, setUser] = useState<DecodedToken | null>(null);
@@ -86,65 +85,65 @@ export function Dashboard() {
     window.location.href = "/";
   };
 
-  const handleExport = () => {
-    if (!overviewData) {
-      alert("Dashboard data is not loaded yet.");
-      return;
-    }
+  // const handleExport = () => {
+  //   if (!overviewData) {
+  //     alert("Dashboard data is not loaded yet.");
+  //     return;
+  //   }
 
-    const wb = XLSX.utils.book_new();
+  //   const wb = XLSX.utils.book_new();
 
-    // Overview Summary sheet
-    const overviewSummary = [
-      { Metric: "Today's Revenue", Value: overviewData.sales.revenue_today.toFixed(2) },
-      { Metric: "Today's Sales Quantity", Value: overviewData.sales.today_sales_qty },
-      { Metric: "Total Revenue", Value: overviewData.sales.total_revenue.toFixed(2) },
-      { Metric: "Total Sales Quantity", Value: overviewData.sales.total_sales_qty },
-      { Metric: "Today's Profit", Value: overviewData.profit.today_profit.toFixed(2) },
-      { Metric: "Total Profit", Value: overviewData.profit.total_profit.toFixed(2) },
-      { Metric: "Total Medicines", Value: overviewData.stock.total_medicines },
-      { Metric: "Low Stock Items", Value: overviewData.stock.low_stock },
-      { Metric: "Near Expiry Items", Value: overviewData.stock.near_expiry },
-      { Metric: "Expired Items", Value: overviewData.stock.expired },
-    ];
-    const wsOverview = XLSX.utils.json_to_sheet(overviewSummary);
-    XLSX.utils.book_append_sheet(wb, wsOverview, "Overview Summary");
+  //   // Overview Summary sheet
+  //   const overviewSummary = [
+  //     { Metric: "Today's Revenue", Value: overviewData.sales.revenue_today.toFixed(2) },
+  //     { Metric: "Today's Sales Quantity", Value: overviewData.sales.today_sales_qty },
+  //     { Metric: "Total Revenue", Value: overviewData.sales.total_revenue.toFixed(2) },
+  //     { Metric: "Total Sales Quantity", Value: overviewData.sales.total_sales_qty },
+  //     { Metric: "Today's Profit", Value: overviewData.profit.today_profit.toFixed(2) },
+  //     { Metric: "Total Profit", Value: overviewData.profit.total_profit.toFixed(2) },
+  //     { Metric: "Total Medicines", Value: overviewData.stock.total_medicines },
+  //     { Metric: "Low Stock Items", Value: overviewData.stock.low_stock },
+  //     { Metric: "Near Expiry Items", Value: overviewData.stock.near_expiry },
+  //     { Metric: "Expired Items", Value: overviewData.stock.expired },
+  //   ];
+  //   const wsOverview = XLSX.utils.json_to_sheet(overviewSummary);
+  //   XLSX.utils.book_append_sheet(wb, wsOverview, "Overview Summary");
 
-    // Top Selling Medicines sheet
-    const topSellingData = overviewData.top_selling.map((item, index) => ({
-      Rank: index + 1,
-      Medicine: item.medicine__brand_name,
-      Units_Sold: item.total_sold,
-    }));
-    const wsTopSelling = XLSX.utils.json_to_sheet(topSellingData);
-    XLSX.utils.book_append_sheet(wb, wsTopSelling, "Top Selling Medicines");
+  //   // Top Selling Medicines sheet
+  //   const topSellingData = overviewData.top_selling.map((item, index) => ({
+  //     Rank: index + 1,
+  //     Medicine: item.medicine__brand_name,
+  //     Units_Sold: item.total_sold,
+  //   }));
+  //   const wsTopSelling = XLSX.utils.json_to_sheet(topSellingData);
+  //   XLSX.utils.book_append_sheet(wb, wsTopSelling, "Top Selling Medicines");
 
-    // Department Overview sheet
-    const departmentData = overviewData.departments.map((dept) => ({
-      Department: dept.department__name,
-      Total_Items: dept.total,
-      Total_Profit: dept.total_profit,
-    }));
-    const wsDepartments = XLSX.utils.json_to_sheet(departmentData);
-    XLSX.utils.book_append_sheet(wb, wsDepartments, "Department Overview");
+  //   // Department Overview sheet
+  //   const departmentData = overviewData.departments.map((dept) => ({
+  //     Department: dept.department__name,
+  //     Total_Items: dept.total,
+  //     Total_Profit: dept.total_profit,
+  //   }));
+  //   const wsDepartments = XLSX.utils.json_to_sheet(departmentData);
+  //   XLSX.utils.book_append_sheet(wb, wsDepartments, "Department Overview");
 
-    // Function to convert string to array buffer
-    const s2ab = (s: string) => {
-      const buf = new ArrayBuffer(s.length);
-      const view = new Uint8Array(buf);
-      for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
-      return buf;
-    };
+  //   // Function to convert string to array buffer
+  //   const s2ab = (s: string) => {
+  //     const buf = new ArrayBuffer(s.length);
+  //     const view = new Uint8Array(buf);
+  //     for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
+  //     return buf;
+  //   };
 
-    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "binary" });
-    const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "dashboard_overview.xlsx";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  //   const wbout = XLSX.write(wb, { bookType: "xlsx", type: "binary" });
+  //   const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+  //   const url = URL.createObjectURL(blob);
+  //   const a = document.createElement("a");
+  //   a.href = url;
+  //   a.download = "dashboard_overview.xlsx";
+  //   a.click();
+  //   URL.revokeObjectURL(url);
+  // };
 
   if (isLoading || !overviewData) {
     return (

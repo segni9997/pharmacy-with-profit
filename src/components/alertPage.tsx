@@ -20,6 +20,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertTriangle, Package, TrendingDown, Clock } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { jwtDecode } from "jwt-decode";
+import { NavDropdown } from "./navDropDown";
 
 export default function AlertsPage() {
   const { data: meds , isLoading} = useGetalertsQuery(
@@ -113,6 +114,7 @@ export default function AlertsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-r from-background via-card to-background dark:from-background dark:via-card dark:to-background">
       {/* Header */}
+      <NavDropdown/>
       <header className="border-b bg-gradient-to-r from-primary to-secondary shadow-md dark:from-primary dark:to-secondary">
         <div className="flex h-16 items-center justify-between px-6 w-full">
           <h1 className="text-lg md:text-2xl font-extrabold text-white tracking-wide">
