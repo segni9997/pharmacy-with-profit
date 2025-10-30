@@ -405,9 +405,7 @@ export function POSSystem() {
       <header className="border-b bg-card">
         <div className="flex h-16 items-center justify-between px-6">
           <div className="flex items-center gap-4">
-            <h1 className="md:hidden text-sm font-bold text-primary">
-              POS
-            </h1>
+            <h1 className="md:hidden text-sm font-bold text-primary">POS</h1>
             <h1 className="hidden md:flex md:text-3xl text-sm font-bold text-primary">
               Point of Sale
             </h1>
@@ -423,7 +421,6 @@ export function POSSystem() {
             >
               Sold Medicine
             </Button>
-         
           </div>
         </div>
       </header>
@@ -481,11 +478,15 @@ export function POSSystem() {
 
                 {/* Medicine Table */}
                 <div className="max-h-96 overflow-y-auto">
-                  {medicines?.results.filter(
-                    (medicine) =>
-                      medicine.stock_carton > 0 ||
-                      medicine.total_stock_units > 0
-                  ).length === 0 ? (
+                  {medicines?.results.filter((medicine) => {
+                    const today = new Date().toISOString().split("T")[0];
+                    console.log(today, medicine.expire_date)
+                    return (
+                      (medicine.stock_carton > 0 ||
+                        medicine.total_stock_units > 0) &&
+                      medicine.expire_date > today
+                    );
+                  }).length === 0 ? (
                     <p className="text-muted-foreground text-center py-4">
                       No medicines found
                     </p>
@@ -507,12 +508,15 @@ export function POSSystem() {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {medicines?.results
-                            .filter(
-                              (medicine) =>
-                                medicine.stock_carton > 0 ||
-                                medicine.total_stock_units > 0
-                            )
+                            {medicines?.results.filter((medicine) => {
+                    const today = new Date().toISOString().split("T")[0];
+                    console.log(today, medicine.expire_date)
+                    return (
+                      (medicine.stock_carton > 0 ||
+                        medicine.total_stock_units > 0) &&
+                      medicine.expire_date > today
+                    );
+                  })
                             .map((medicine) => (
                               <TableRow
                                 key={medicine.id}

@@ -134,7 +134,7 @@ export default function SalesDetailPage() {
     voucher_number: voucherNumber,
     ...dateRangeParams,
   });
-
+// console.log(salesResponse)
   useEffect(() => {
     refetch();
   }, [itemsPerPage, refetch, voucherNumber, filterType, selectedValue]);
@@ -683,7 +683,7 @@ function SalesCard({
                         ).toLocaleString("en-US", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
-                        })}
+                        })} {item.sale_type}
                       </span>
                     </div>
                   </div>
@@ -703,7 +703,7 @@ function SalesCard({
               <span className="text-sm text-foreground/90">Stock Sold</span>
             </div>
             <span className="font-bold text-foreground/90">
-              {totalItems} units
+              {totalItems} 
             </span>
           </div>
 

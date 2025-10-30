@@ -118,6 +118,7 @@ export interface SaleItem {
   expire_date: string;
   code_no: string;
   unit_type: string;
+  sale_type: string;
 }
 
 export interface DashboardStats {
@@ -153,7 +154,14 @@ export interface AnalyticsData {
   stock_alerts: {
     low_stock: any[];
     stock_out: any[];
-    near_expiry: any[];
+    near_expiry: {
+      id: string;
+      batch_no: string;
+      brand_name: string;
+      expire_date: string;
+      item_name: number;
+    }[];
+    
   };
   weekly_summary: {
     week_sales: number;

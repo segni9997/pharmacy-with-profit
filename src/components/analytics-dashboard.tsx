@@ -62,7 +62,7 @@ export function AnalyticsDashboard() {
   console.log(analyticsData)
   const { data: profit, isLoading: isProfitLoading } =
     useGetProfitSummaryQuery();
-  console.log("profit", analyticsData);
+  console.log("profit", profit);
   const [user, setUser] = useState<DecodedToken | null>(null);
 
   const profitChartData = profit
@@ -248,9 +248,9 @@ export function AnalyticsDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-        <div className="fixed top-4 right-4 z-50">
-              <NavDropdown />
-            </div>
+      <div className="fixed top-4 right-4 z-50">
+        <NavDropdown />
+      </div>
       <header className="border-b bg-background shadow-sm">
         <div className="flex h-16 items-center justify-between px-6">
           <div className="flex items-center gap-4">
@@ -562,7 +562,7 @@ export function AnalyticsDashboard() {
           </Card>
         </div>
 
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-1">
           <Card className="shadow-lg">
             <CardHeader>
               <CardTitle>Stock Alerts</CardTitle>
@@ -571,9 +571,10 @@ export function AnalyticsDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4 max-h-80 overflow-y-auto">
+              <div className="space-y-4 max-h-96 overflow-y-auto">
                 {analyticsData.stock_alerts.low_stock.length === 0 &&
-                analyticsData.stock_alerts.stock_out.length === 0 ? (
+                analyticsData.stock_alerts.stock_out.length === 0 &&
+                analyticsData.stock_alerts.near_expiry.length === 0 ? (
                   <p className="text-gray-600 text-center py-8">
                     No stock alerts at this time
                   </p>
@@ -586,7 +587,9 @@ export function AnalyticsDashboard() {
                           className="flex items-center justify-between p-3 border border-orange-200 bg-orange-50 rounded-lg"
                         >
                           <div className="flex-1">
-                            <h4 className="font-medium text-sm">{item.brand_name}</h4>
+                            <h4 className="font-medium text-sm">
+                              {item.brand_name}
+                            </h4>
                             <p className="text-xs text-gray-600">
                               Current stock: {item.stock} units
                             </p>
@@ -607,7 +610,9 @@ export function AnalyticsDashboard() {
                           className="flex items-center justify-between p-3 border border-red-200 bg-red-50 rounded-lg"
                         >
                           <div className="flex-1">
-                            <h4 className="font-medium text-sm">{item.brand_name}</h4>
+                            <h4 className="font-medium text-sm">
+                              {item.brand_name}
+                            </h4>
                             <p className="text-xs text-gray-600">
                               Out of stock
                             </p>
@@ -625,9 +630,12 @@ export function AnalyticsDashboard() {
                           className="flex items-center justify-between p-3 border border-yellow-200 bg-yellow-50 rounded-lg"
                         >
                           <div className="flex-1">
-                            <h4 className="font-medium text-sm">{item.brand_name}</h4>
+                            <p className="font-medium text-sm flex flex-col">
+                              <h3>{item.item_name}</h3>
+                              <span className="text-foreground/80">{item.brand_name}</span>
+                            </p>
                             <p className="text-xs text-gray-600">
-                              Expires soon
+                              Expires soon on: {item.expire_date}
                             </p>
                           </div>
                           <Badge

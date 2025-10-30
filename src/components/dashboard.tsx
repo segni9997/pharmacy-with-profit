@@ -31,9 +31,10 @@ import { NavDropdown } from "./navDropDown";
 export function Dashboard() {
   // const [user, setUser] = useState<DecodedToken | null>(null);
   const { data: apiData, isLoading, error } = useGetOverviewQuery();
-  
+  console.log(apiData)
   // const user: any = jwtDecode(localStorage.getItem("access_token") || "");
-  const {data:user} = useWhoamiQuery();
+  const { data: user } = useWhoamiQuery();
+  
   const overviewData: OverviewData | null =
     apiData ||
     (error
@@ -238,7 +239,7 @@ export function Dashboard() {
               </CardHeader>
               <CardContent className="px-3 pb-3">
                 <div className="text-xl font-extrabold">
-                  Birr {overviewData.profit.today_profit.toFixed(2)}
+                  Birr {overviewData.profit?.today_profit.toFixed(2)}
                 </div>
                 <p className="text-[10px] opacity-80 mt-0.5">Profit today</p>
               </CardContent>
@@ -413,13 +414,13 @@ export function Dashboard() {
               <CardDescription>Best performing products</CardDescription>
             </CardHeader>
             <CardContent>
-              {overviewData.top_selling.length === 0 ? (
+              {overviewData?.top_selling?.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">
                   No sales data available.
                 </p>
               ) : (
                 <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {overviewData.top_selling.map((medicine, index) => (
+                  {overviewData?.top_selling?.map((medicine, index) => (
                     <div
                       key={index}
                       className="flex justify-between items-center p-4 bg-gradient-to-r from-primary/10 to-primary/20 rounded-lg border border-primary/20 hover:shadow-md transition-shadow"
@@ -456,13 +457,13 @@ export function Dashboard() {
               <CardDescription>Medicine by department</CardDescription>
             </CardHeader>
             <CardContent>
-              {overviewData.departments.length === 0 ? (
+              {overviewData?.departments?.length === 0 ? (
                 <p className="text-muted-foreground text-center py-8">
                   No department data available.
                 </p>
               ) : (
                 <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {overviewData.departments.map((dept, index) => (
+                  {overviewData?.departments?.map((dept, index) => (
                     <div
                       key={index}
                       className="flex justify-between items-center p-4 bg-gradient-to-r from-secondary/10 to-secondary/20 rounded-lg border border-secondary/20 hover:shadow-md transition-shadow"
@@ -511,7 +512,7 @@ export function Dashboard() {
                     Today's Profit
                   </p>
                   <p className="text-3xl font-bold text-green-600">
-                    Birr {overviewData.profit.today_profit.toFixed(2)}
+                    Birr {overviewData?.profit?.today_profit?.toFixed(2)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     profit earned today
@@ -533,7 +534,7 @@ export function Dashboard() {
                     Total Profit
                   </p>
                   <p className="text-3xl font-bold text-green-600">
-                    Birr {overviewData.profit.total_profit.toFixed(2)}
+                    Birr {overviewData?.profit?.total_profit?.toFixed(2)}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
                     all-time profit
